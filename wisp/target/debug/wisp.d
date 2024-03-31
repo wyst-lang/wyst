@@ -1,0 +1,1 @@
+C:\Users\charlie\Desktop\projects\wisp\wisp\target\debug\wisp.exe: C:\Users\charlie\Desktop\projects\wisp\wisp\src\lexer\lexer.rs C:\Users\charlie\Desktop\projects\wisp\wisp\src\lexer\mod.rs C:\Users\charlie\Desktop\projects\wisp\wisp\src\main.rs
