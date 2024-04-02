@@ -4,7 +4,8 @@ use std::fmt;
 
 #[derive(Debug, Clone)]
 pub enum AstTypes {
-    FunctionDecleration
+    FunctionDecleration,
+    Other
 }
 
 pub struct Ast {
@@ -22,7 +23,8 @@ impl<'a> fmt::Debug for Ast {
 pub enum AstDef {
     Normal(TokenType),
     Repeated(TokenType),
-    Optional(TokenType)
+    Optional(TokenType),
+    Else
 }
 
 pub struct PNode {
@@ -39,6 +41,10 @@ pub fn parse(tokens: &mut Vec<Token>) -> Box<Vec<Ast>> {
         PNode {
             ast_type: AstTypes::FunctionDecleration,
             ast_match: vec![AstDef::Normal(TokenType::Keyword)]
+        },
+        PNode {
+            ast_type: AstTypes::Other,
+            ast_match: vec![AstDef::Else]
         },
     ];
     let tokens_len = tokens.len();
@@ -62,7 +68,13 @@ pub fn parse(tokens: &mut Vec<Token>) -> Box<Vec<Ast>> {
                             is_match = true;
                         } else {
                             is_match = false;
+                            break;
                         }
+                    }
+                    AstDef::Else => {
+                        matched.push(tokens[i].clone());
+                        tokens.drain(0..1);
+                        is_match = true;
                     }
                     _ => {}
                 }

@@ -20,12 +20,12 @@ pub enum TokenType {
 #[derive(Clone)]
 pub struct Token {
     pub token_type: TokenType,
-    pub token_value: Vec<String>
+    pub token_values: Vec<String>
 }
 
 impl<'a> fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(TokenType: {:?}, TokenValue: {})", self.token_type, self.token_value.join(", "))
+        write!(f, "(TokenType: {:?}, TokenValue: {})", self.token_type, self.token_values.join(", "))
     }
 }
 
@@ -91,7 +91,7 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
                 if (!use_whitespace && s.token_type!=TokenType::Whitespace) || use_whitespace {
                     tokens.push(Token {
                         token_type: s.token_type,
-                        token_value: vcaps,
+                        token_values: vcaps,
                     });
                 }
             } else {
