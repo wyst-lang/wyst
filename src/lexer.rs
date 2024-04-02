@@ -5,6 +5,7 @@ use std::fmt;
 // Define token types
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TokenType {
+    Keyword,
     Newline,
     Whitespace,
     Number,
@@ -16,14 +17,15 @@ pub enum TokenType {
     // EOF,
 }
 
+#[derive(Clone)]
 pub struct Token {
     pub token_type: TokenType,
-    pub token_value: String
+    pub token_value: Vec<String>
 }
 
-impl<'a> fmt::Display for Token {
+impl<'a> fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "TokenType: {:?}, TokenValue: {}", self.token_type, self.token_value)
+        write!(f, "(TokenType: {:?}, TokenValue: {})", self.token_type, self.token_value.join(", "))
     }
 }
 
@@ -32,7 +34,7 @@ pub struct Node {
     token_regex: Lazy<Regex>
 }
 
-const SYNTAX: [Node; 8] = [
+const SYNTAX: [Node; 9] = [
     Node {
         token_type: TokenType::Newline,
         token_regex: Lazy::new(|| Regex::new(r"^\n+").unwrap())
@@ -44,6 +46,10 @@ const SYNTAX: [Node; 8] = [
     Node {
         token_type: TokenType::Number,
         token_regex: Lazy::new(|| Regex::new(r"^\b(:?.)?(:?0[x|X])?\d+(:?.\d+)?\b").unwrap())
+    },
+    Node {
+        token_type: TokenType::Keyword,
+        token_regex: Lazy::new(|| Regex::new(r"^mut|try|catch|return|fn").unwrap())
     },
     Node {
         token_type: TokenType::Identifier,
@@ -67,7 +73,7 @@ const SYNTAX: [Node; 8] = [
     }
 ];
 
-pub fn lex(mut code: &str, use_whitespace: bool ) -> Vec<Token> {
+pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
     let mut tokens: Vec<Token> = Vec::new();
     while !code.is_empty() {
         let mut is_match = false;
@@ -75,10 +81,17 @@ pub fn lex(mut code: &str, use_whitespace: bool ) -> Vec<Token> {
             if let Some(caps) = s.token_regex.captures(code) {
                 is_match = true;
                 code = code.strip_prefix(&caps[0]).unwrap_or(code);
+                let mut vcaps: Vec<String> = Vec::new();
+                let capsl = caps.len();
+                let mut x = 0;
+                while x < capsl {
+                    vcaps.push(caps[x].to_string());
+                    x+=1;
+                }
                 if (!use_whitespace && s.token_type!=TokenType::Whitespace) || use_whitespace {
                     tokens.push(Token {
                         token_type: s.token_type,
-                        token_value: caps[0].to_string(),
+                        token_value: vcaps,
                     });
                 }
             } else {
