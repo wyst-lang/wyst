@@ -2,6 +2,11 @@ use regex::Regex;
 use once_cell::sync::Lazy;
 use std::fmt;
 
+pub struct LexerState {
+    line: usize,
+    column: usize
+}
+
 // Define token types
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TokenType {
@@ -17,17 +22,20 @@ pub enum TokenType {
     // EOF,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Token {
     pub token_type: TokenType,
-    pub token_values: Vec<String>
+    pub token_values: Vec<String>,
+    pub line: usize,
+    pub column: usize
 }
-
+/*
 impl<'a> fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "(TokenType: {:?}, TokenValue: {})", self.token_type, self.token_values.join(", "))
     }
 }
+*/
 
 pub struct Node {
     token_type: TokenType,
@@ -37,7 +45,7 @@ pub struct Node {
 const SYNTAX: [Node; 9] = [
     Node {
         token_type: TokenType::Newline,
-        token_regex: Lazy::new(|| Regex::new(r"^\n+").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^\n+").unwrap()),
     },
     Node {
         token_type: TokenType::Whitespace,
@@ -74,7 +82,9 @@ const SYNTAX: [Node; 9] = [
 ];
 
 pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
+    let mut state = LexerState { line: 1, column: 1 };
     let mut tokens: Vec<Token> = Vec::new();
+
     while !code.is_empty() {
         let mut is_match = false;
         for s in &SYNTAX {
@@ -88,11 +98,23 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
                     vcaps.push(caps[x].to_string());
                     x+=1;
                 }
+
                 if (!use_whitespace && s.token_type!=TokenType::Whitespace) || use_whitespace {
                     tokens.push(Token {
                         token_type: s.token_type,
                         token_values: vcaps,
+                        line: state.line,
+                        column: state.column
                     });
+                    println!("token found {:#?}", tokens.get(tokens.len()-1));
+                }
+
+                match s.token_type {
+                    TokenType::Newline => {
+                        state.line += caps[0].len();
+                        state.column = 1;
+                    },
+                    _ => { state.column += caps[0].len(); }
                 }
             } else {
                 continue;
