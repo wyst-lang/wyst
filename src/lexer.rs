@@ -29,13 +29,12 @@ pub struct Token {
     pub line: usize,
     pub column: usize
 }
-/*
+
 impl<'a> fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "(TokenType: {:?}, TokenValue: {})", self.token_type, self.token_values.join(", "))
     }
 }
-*/
 
 pub struct Node {
     token_type: TokenType,
