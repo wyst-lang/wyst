@@ -22,7 +22,7 @@ pub enum TokenType {
     // EOF,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Token {
     pub token_type: TokenType,
     pub token_values: Vec<String>,
@@ -32,7 +32,7 @@ pub struct Token {
 
 impl<'a> fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(TokenType: {:?}, TokenValue: {})", self.token_type, self.token_values.join(", "))
+        write!(f, "(TokenType: {:?}, TokenValue: {}, Line: {}, Column {})", self.token_type, self.token_values.join(", "), self.line, self.column)
     }
 }
 
@@ -105,7 +105,6 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
                         line: state.line,
                         column: state.column
                     });
-                    println!("token found {:#?}", tokens.get(tokens.len()-1));
                 }
 
                 match s.token_type {
