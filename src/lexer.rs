@@ -49,7 +49,7 @@ const SYNTAX: [Node; 9] = [
     },
     Node {
         token_type: TokenType::Keyword,
-        token_regex: Lazy::new(|| Regex::new(r"^mut|try|catch|return|fn").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^if|mut|try|catch|return|fn").unwrap())
     },
     Node {
         token_type: TokenType::Identifier,

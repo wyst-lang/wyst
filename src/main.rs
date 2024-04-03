@@ -4,7 +4,7 @@ mod parser;
 use parser::parse;
 
 fn main() {
-    let input = "int main() {}";
+    let input = "if a + b {}";
     println!("\n\n\n\n");
     // let input = "test->xy";
     let mut tokens = lex(input, false);
