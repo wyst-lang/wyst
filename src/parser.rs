@@ -46,7 +46,7 @@ pub fn parse(tokens: &mut Vec<Token>) -> Box<Vec<Ast>> {
     ];
     let tokens_len = tokens.len();
     let mut ast: Vec<Ast> = Vec::new(); 
-    let mut i = 0;
+    // let mut i = 0;
     while tokens.len()>0 {
         for ast_node in &ast_def {
             if tokens_len < ast_node.ast_match.len() {
@@ -57,8 +57,8 @@ pub fn parse(tokens: &mut Vec<Token>) -> Box<Vec<Ast>> {
             for ast_match in &ast_node.ast_match {
                 match ast_match {
                     AstDef::Normal(token_type) => {
-                        if &tokens[i].token_type == token_type {
-                            matched.push(tokens[i].clone());
+                        if &tokens[0].token_type == token_type {
+                            matched.push(tokens[0].clone());
                             tokens.drain(0..1);
                             is_match = true;
                         } else {
@@ -67,8 +67,8 @@ pub fn parse(tokens: &mut Vec<Token>) -> Box<Vec<Ast>> {
                         }
                     }
                     AstDef::NormalValue(token_type, token_value) => {
-                        if &tokens[i].token_type == token_type && &tokens[i].token_values == token_value {
-                            matched.push(tokens[i].clone());
+                        if &tokens[0].token_type == token_type && &tokens[0].token_values == token_value {
+                            matched.push(tokens[0].clone());
                             tokens.drain(0..1);
                             is_match = true;
                         } else {
@@ -80,8 +80,8 @@ pub fn parse(tokens: &mut Vec<Token>) -> Box<Vec<Ast>> {
                         loop {
                             let mut node_match = false;
                             for &node_ in nodes {
-                                if node_ == tokens[i].token_type {
-                                    matched.push(tokens[i].clone());
+                                if node_ == tokens[0].token_type {
+                                    matched.push(tokens[0].clone());
                                     node_match = true;
                                     tokens.drain(0..1);
                                 }
@@ -94,15 +94,15 @@ pub fn parse(tokens: &mut Vec<Token>) -> Box<Vec<Ast>> {
                         }
                     }
                     AstDef::Optional(token_type) => {
-                        if &tokens[i].token_type == token_type {
-                            matched.push(tokens[i].clone());
+                        if &tokens[0].token_type == token_type {
+                            matched.push(tokens[0].clone());
                             tokens.drain(0..1);
                             is_match = true;
                             break;
                         }
                     }
                     AstDef::Else => {
-                        matched.push(tokens[i].clone());
+                        matched.push(tokens[0].clone());
                         tokens.drain(0..1);
                         is_match = true;
                     }
@@ -110,7 +110,6 @@ pub fn parse(tokens: &mut Vec<Token>) -> Box<Vec<Ast>> {
                 }
             }
             if is_match {
-                i = 0;
                 ast.push(Ast {values: matched, type_: ast_node.ast_type.clone()});
                 matched = Vec::new();
                 break;
