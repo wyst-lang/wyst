@@ -37,7 +37,7 @@ pub fn parse(tokens: &mut Vec<Token>) -> Box<Vec<Ast>> {
     let ast_def: Vec<PNode> = vec![
         PNode {
             ast_type: AstTypes::FunctionDecleration,
-            ast_match: vec![AstDef::Optional(TokenType::Identifier)]
+            ast_match: vec![AstDef::NormalValue(TokenType::Identifier, vec!["if".to_string()]), AstDef::Repeated(vec![TokenType::Operator, TokenType::Identifier, ])]
         },
         PNode {
             ast_type: AstTypes::Other,
@@ -83,11 +83,10 @@ pub fn parse(tokens: &mut Vec<Token>) -> Box<Vec<Ast>> {
                                 if node_ == tokens[i].token_type {
                                     matched.push(tokens[i].clone());
                                     node_match = true;
-                                    i+=1;
+                                    tokens.drain(0..1);
                                 }
                             }
                             if node_match {
-                                tokens.drain(0..i);
                                 is_match = true;
                             } else {
                                 break;
