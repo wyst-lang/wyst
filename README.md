@@ -1,2 +1,2 @@
-# wisp
-Wisp is a Programing language inspired by C and transpiled to Rust
+# Wyst
+Wyst is a Programing language inspired by C and transpiled to Rust
