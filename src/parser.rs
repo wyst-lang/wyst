@@ -1,10 +1,13 @@
 // use std::collections::HashMap;
 use  crate::lexer::{Token, TokenType};
 use std::fmt;
+use crate::parser::AstDef::{Else, Normal};
+use crate::parser::AstTypes::{FunctionDecleration, Other};
 
 #[derive(Debug, Clone)]
 pub enum AstTypes {
     FunctionDecleration,
+    VariableDecleration,
     Other
 }
 
@@ -36,13 +39,17 @@ pub struct PNode {
 pub fn parse(tokens: &mut Vec<Token>) -> Box<Vec<Ast>> {
     let ast_def: Vec<PNode> = vec![
         PNode {
-            ast_type: AstTypes::FunctionDecleration,
-            ast_match: vec![AstDef::NormalValue(TokenType::Identifier, vec!["if".to_string()]), AstDef::Repeated(vec![TokenType::Operator, TokenType::Identifier, ])]
+            ast_type: FunctionDecleration,
+            ast_match: vec![Normal(TokenType::Identifier), Normal(TokenType::Identifier), Normal(TokenType::Round), Normal(TokenType::Curly)]
         },
         PNode {
-            ast_type: AstTypes::Other,
-            ast_match: vec![AstDef::Else]
+            ast_type: AstTypes::VariableDecleration,
+            ast_match: vec![Normal(TokenType::Identifier), Normal(TokenType::Identifier)]
         },
+        PNode {
+            ast_type: Other,
+            ast_match: vec![Else]
+        }
     ];
     let tokens_len = tokens.len();
     let mut ast: Vec<Ast> = Vec::new(); 

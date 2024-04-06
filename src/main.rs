@@ -4,7 +4,7 @@ mod parser;
 use parser::parse;
 
 fn main() {
-    let input = "if a + b {}";
+    let input = "void main() {} <>";
     println!("\n\n\n\n");
     // let input = "test->xy";
     let mut tokens = lex(input, false);
@@ -14,7 +14,11 @@ fn main() {
     // }
     let mut _x = 1;
     for a in ast {
-        println!("{:?}: {:?}\n", a.type_, a.values);
+        println!("{:?}: [", a.type_);
+        for v in a.values {
+            println!("    {:?},", v);
+        }
+        println!("]");
         _x+=1;
     }
 }

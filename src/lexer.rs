@@ -19,6 +19,8 @@ pub enum TokenType {
     Operator,
     Round,
     Curly,
+    Square,
+    Angle,
     // EOF,
 }
 
@@ -41,7 +43,7 @@ pub struct Node {
     token_regex: Lazy<Regex>
 }
 
-const SYNTAX: [Node; 9] = [
+const SYNTAX: [Node; 11] = [
     Node {
         token_type: TokenType::Newline,
         token_regex: Lazy::new(|| Regex::new(r"^\n+").unwrap()),
@@ -56,7 +58,7 @@ const SYNTAX: [Node; 9] = [
     },
     Node {
         token_type: TokenType::Keyword,
-        token_regex: Lazy::new(|| Regex::new(r"^mut|try|catch|return|fn").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^mut|try|catch|return|fn\b").unwrap())
     },
     Node {
         token_type: TokenType::Identifier,
@@ -76,8 +78,16 @@ const SYNTAX: [Node; 9] = [
     },
     Node {
         token_type: TokenType::Curly,
-        token_regex: Lazy::new(|| Regex::new(r"^[\{|\}]").unwrap())
-    }
+        token_regex: Lazy::new(|| Regex::new(r"\{(?:[^{}]|(?R))*}").unwrap())
+    },
+    Node {
+        token_type: TokenType::Square,
+        token_regex: Lazy::new(|| Regex::new(r"\[(?:[^\[\]]|(?R))*]").unwrap())
+    },
+    Node {
+        token_type: TokenType::Angle,
+        token_regex: Lazy::new(|| Regex::new(r"<(?:[^<>]|(?R))*>").unwrap())
+    },
 ];
 
 pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
