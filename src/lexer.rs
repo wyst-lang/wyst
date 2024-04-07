@@ -69,7 +69,7 @@ const SYNTAX: [Node; 12] = [
     },
     Node {
         token_type: TokenType::Identifier,
-        token_regex: Lazy::new(|| Regex::new(r"^[._a-zA-Z][a-zA-Z0-9_]*").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^[._a-zA-Z][a-zA-Z0-9_]*(:?<[._a-zA-Z][a-zA-Z0-9_<>]*>)?").unwrap())
     },
     Node {
         token_type: TokenType::Ptr,

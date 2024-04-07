@@ -46,7 +46,7 @@ impl Parser {
         let token = &self.tokens[index];
         match token.token_type {
             TokenType::Identifier => {
-                if self.tokens[index+1].token_type==TokenType::Identifier && self.tokens[index+2].token_type==TokenType::Round && self.tokens[index+3].token_type==TokenType::Curly {
+                if self.tokens.len()-index > 2 && self.tokens[index+1].token_type==TokenType::Identifier && self.tokens[index+2].token_type==TokenType::Round && self.tokens[index+3].token_type==TokenType::Curly {
                     ast_res.tokens.push(self.tokens[index].clone());
                     ast_res.tokens.push(self.tokens[index+1].clone());
                     ast_res.tokens.push(self.tokens[index+2].clone());
@@ -62,6 +62,10 @@ impl Parser {
                             ast_res.tokens.push(ntk.clone());
                             self.index += 1;
                         } else if ntk.token_type==TokenType::Identifier {
+                            ast_res.tokens.push(ntk.clone());
+                            ast_res.ast_type = AstType::VariableDecleration;
+                            self.index += 1;
+                        } else if ntk.token_type==TokenType::Keyword {
                             ast_res.tokens.push(ntk.clone());
                             ast_res.ast_type = AstType::VariableDecleration;
                             self.index += 1;
