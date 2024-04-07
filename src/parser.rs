@@ -1,127 +1,85 @@
-// use std::collections::HashMap;
 use  crate::lexer::{Token, TokenType};
 use std::fmt;
-use crate::parser::AstDef::{Else, Normal};
-use crate::parser::AstTypes::{FunctionDecleration, Other};
 
-#[derive(Debug, Clone)]
-pub enum AstTypes {
+#[derive(Clone, Debug)]
+pub enum AstType {
     FunctionDecleration,
     VariableDecleration,
     Other
 }
 
 pub struct Ast {
-    pub type_: AstTypes,
-    pub values: Vec<Token>
+    pub tokens: Vec<Token>,
+    pub ast_type: AstType
 }
 
-impl<'a> fmt::Debug for Ast {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "type={:?} values={:?}", self.type_, self.values)
+impl fmt::Display for Ast {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}: [\n", self.ast_type)?;
+        for (i, token) in self.tokens.iter().enumerate() {
+            if i < self.tokens.len() - 1 {
+                write!(f, "    {},\n", token)?;
+            } else {
+                write!(f, "    {}\n", token)?;
+            }
+        }
+        write!(f, "]")
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum AstDef {
-    Normal(TokenType),
-    NormalValue(TokenType, Vec<String>),
-    Repeated(Vec<TokenType>),
-    Optional(TokenType),
-    Else
+
+
+pub struct Parser {
+    pub tokens: Vec<Token>,
+    pub index: u32
 }
 
-pub struct PNode {
-    ast_type: AstTypes,
-    ast_match: Vec<AstDef>
-}
 
-pub fn parse(tokens: &mut Vec<Token>) -> Box<Vec<Ast>> {
-    let ast_def: Vec<PNode> = vec![
-        PNode {
-            ast_type: FunctionDecleration,
-            ast_match: vec![Normal(TokenType::Identifier), Normal(TokenType::Identifier), Normal(TokenType::Round), Normal(TokenType::Curly)]
-        },
-        PNode {
-            ast_type: AstTypes::VariableDecleration,
-            ast_match: vec![Normal(TokenType::Identifier), Normal(TokenType::Identifier)]
-        },
-        PNode {
-            ast_type: Other,
-            ast_match: vec![Else]
-        }
-    ];
-    let tokens_len = tokens.len();
-    let mut ast: Vec<Ast> = Vec::new(); 
-    // let mut i = 0;
-    while tokens.len()>0 {
-        for ast_node in &ast_def {
-            if tokens_len < ast_node.ast_match.len() {
-                continue;
-            }
-            let mut is_match = false;
-            let mut matched: Vec<Token> = Vec::new();
-            for ast_match in &ast_node.ast_match {
-                match ast_match {
-                    AstDef::Normal(token_type) => {
-                        if &tokens[0].token_type == token_type {
-                            matched.push(tokens[0].clone());
-                            tokens.drain(0..1);
-                            is_match = true;
+impl Parser {
+    pub fn new(tokens: Vec<Token>) -> Parser {
+        Parser {tokens: tokens, index: 0}
+    }
+    pub fn next(&mut self) -> Ast {
+        let mut ast_res: Ast = Ast {tokens: vec![], ast_type: AstType::Other};
+        let mut index = self.index as usize;
+        if index == self.tokens.len() {panic!("Reached the end of tokens")}
+        let token = &self.tokens[index];
+        match token.token_type {
+            TokenType::Identifier => {
+                if self.tokens[index+1].token_type==TokenType::Identifier && self.tokens[index+2].token_type==TokenType::Round && self.tokens[index+3].token_type==TokenType::Curly {
+                    ast_res.tokens.push(self.tokens[index].clone());
+                    ast_res.tokens.push(self.tokens[index+1].clone());
+                    ast_res.tokens.push(self.tokens[index+2].clone());
+                    ast_res.tokens.push(self.tokens[index+3].clone());
+                    ast_res.ast_type = AstType::FunctionDecleration;
+                    self.index += 3;
+                } else {
+                    loop {
+                        if index+1 >= self.tokens.len() {break;}
+                        index = self.index as usize; // Update the index
+                        let ntk = &self.tokens[index]; // Stands for next token
+                        if ntk.value=="," {
+                            ast_res.tokens.push(ntk.clone());
+                            self.index += 1;
+                        } else if ntk.token_type==TokenType::Identifier {
+                            ast_res.tokens.push(ntk.clone());
+                            ast_res.ast_type = AstType::VariableDecleration;
+                            self.index += 1;
+                        } else if ntk.token_type==TokenType::Angle {
+                            ast_res.tokens.push(ntk.clone());
+                            self.index += 1;
                         } else {
-                            is_match = false;
+                            self.index -= 1;
                             break;
-                        }
+                        } 
                     }
-                    AstDef::NormalValue(token_type, token_value) => {
-                        if &tokens[0].token_type == token_type && &tokens[0].token_values == token_value {
-                            matched.push(tokens[0].clone());
-                            tokens.drain(0..1);
-                            is_match = true;
-                        } else {
-                            is_match = false;
-                            break;
-                        }
-                    }
-                    AstDef::Repeated(nodes) => {
-                        loop {
-                            let mut node_match = false;
-                            for &node_ in nodes {
-                                if node_ == tokens[0].token_type {
-                                    matched.push(tokens[0].clone());
-                                    node_match = true;
-                                    tokens.drain(0..1);
-                                }
-                            }
-                            if node_match {
-                                is_match = true;
-                            } else {
-                                break;
-                            }
-                        }
-                    }
-                    AstDef::Optional(token_type) => {
-                        if &tokens[0].token_type == token_type {
-                            matched.push(tokens[0].clone());
-                            tokens.drain(0..1);
-                            is_match = true;
-                            break;
-                        }
-                    }
-                    AstDef::Else => {
-                        matched.push(tokens[0].clone());
-                        tokens.drain(0..1);
-                        is_match = true;
-                    }
-                    _ => {}
                 }
             }
-            if is_match {
-                ast.push(Ast {values: matched, type_: ast_node.ast_type.clone()});
-                matched = Vec::new();
-                break;
+            _ => {
+                ast_res.tokens.push(token.clone());
             }
         }
+        self.index += 1;
+        ast_res
     }
-    Box::new(ast)
 }

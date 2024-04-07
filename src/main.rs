@@ -1,24 +1,14 @@
 mod lexer;
 use lexer::lex;
 mod parser;
-use parser::parse;
+use parser::Parser;
 
 fn main() {
-    let input = "void main() {} <>";
+    let input = "int main() {}";
     println!("\n\n\n\n");
-    // let input = "test->xy";
-    let mut tokens = lex(input, false);
-    let ast = *parse(&mut tokens);
-    // for t in tokens {
-    //     println!("{:?}", t);
-    // }
-    let mut _x = 1;
-    for a in ast {
-        println!("{:?}: [", a.type_);
-        for v in a.values {
-            println!("    {:?},", v);
-        }
-        println!("]");
-        _x+=1;
+    let tokens = lex(input, false);
+    let mut ast = Parser::new(tokens.clone());
+    while ast.tokens.len() > ast.index as usize {
+        println!("{}\n\n", ast.next());
     }
 }
