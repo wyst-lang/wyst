@@ -1,10 +1,11 @@
 use  crate::lexer::{Token, TokenType};
 use std::fmt;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AstType {
     FunctionDeceleration,
     VariableDeceleration,
+    MutVariableDeceleration,
     Other
 }
 
@@ -75,14 +76,12 @@ impl Parser {
                             self.index += 1;
                         } else if ntk.token_type==TokenType::Identifier {
                             ast_res.tokens.push(ntk.clone());
-                            ast_res.ast_type = AstType::VariableDeceleration;
+                            if ast_res.ast_type != AstType::VariableDeceleration && ast_res.ast_type != AstType::MutVariableDeceleration {
+                                ast_res.ast_type = AstType::VariableDeceleration;
+                            }
                             self.index += 1;
-                        } else if ntk.token_type==TokenType::Keyword {
-                            ast_res.tokens.push(ntk.clone());
-                            ast_res.ast_type = AstType::VariableDeceleration;
-                            self.index += 1;
-                        } else if ntk.token_type==TokenType::Angle {
-                            ast_res.tokens.push(ntk.clone());
+                        } else if ntk.value=="mut" {
+                            ast_res.ast_type = AstType::MutVariableDeceleration;
                             self.index += 1;
                         } else {
                             self.index -= 1;
