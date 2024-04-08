@@ -4,7 +4,7 @@ mod parser;
 use parser::Parser;
 
 fn main() {
-    let input = "int<Test> x";
+    let input = "int mut x";
     println!("\n\n\n\n");
     let tokens = lex(input, false);
     let mut ast = Parser::new(tokens.clone());

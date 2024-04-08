@@ -3,8 +3,8 @@ use std::fmt;
 
 #[derive(Clone, Debug)]
 pub enum AstType {
-    FunctionDecleration,
-    VariableDecleration,
+    FunctionDeceleration,
+    VariableDeceleration,
     Other
 }
 
@@ -15,7 +15,7 @@ pub struct Ast {
 
 impl fmt::Display for Ast {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}: [\n", self.ast_type)?;
+        write!(f, "\x1b[36m{:?}:\x1b[0m [\n", self.ast_type)?;
         for (i, token) in self.tokens.iter().enumerate() {
             if i < self.tokens.len() - 1 {
                 write!(f, "    {},\n", token)?;
@@ -27,7 +27,19 @@ impl fmt::Display for Ast {
     }
 }
 
-
+impl fmt::Debug for Ast {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}: [\n", self.ast_type)?;
+        for (i, token) in self.tokens.iter().enumerate() {
+            if i < self.tokens.len() - 1 {
+                write!(f, "    {:?},\n", token)?;
+            } else {
+                write!(f, "    {:?}\n", token)?;
+            }
+        }
+        write!(f, "]")
+    }
+}
 
 pub struct Parser {
     pub tokens: Vec<Token>,
@@ -51,7 +63,7 @@ impl Parser {
                     ast_res.tokens.push(self.tokens[index+1].clone());
                     ast_res.tokens.push(self.tokens[index+2].clone());
                     ast_res.tokens.push(self.tokens[index+3].clone());
-                    ast_res.ast_type = AstType::FunctionDecleration;
+                    ast_res.ast_type = AstType::FunctionDeceleration;
                     self.index += 3;
                 } else {
                     loop {
@@ -63,11 +75,11 @@ impl Parser {
                             self.index += 1;
                         } else if ntk.token_type==TokenType::Identifier {
                             ast_res.tokens.push(ntk.clone());
-                            ast_res.ast_type = AstType::VariableDecleration;
+                            ast_res.ast_type = AstType::VariableDeceleration;
                             self.index += 1;
                         } else if ntk.token_type==TokenType::Keyword {
                             ast_res.tokens.push(ntk.clone());
-                            ast_res.ast_type = AstType::VariableDecleration;
+                            ast_res.ast_type = AstType::VariableDeceleration;
                             self.index += 1;
                         } else if ntk.token_type==TokenType::Angle {
                             ast_res.tokens.push(ntk.clone());
