@@ -1,14 +1,11 @@
-mod lexer;
-use lexer::lex;
+mod transpiler;
 mod parser;
-use parser::Parser;
+mod lexer;
+use std::fs;
+
 
 fn main() {
-    let input = "int<x> mut x";
-    println!("\n\n\n\n");
-    let tokens = lex(input, false);
-    let mut ast = Parser::new(tokens.clone());
-    while ast.tokens.len() > ast.index as usize {
-        println!("{}\n\n", ast.next());
-    }
+    let contents = fs::read_to_string("code.ws").expect("cannot read for some reason");
+    let result = transpiler::transpile(contents, 0);
+    println!("{result}")
 }

@@ -18,6 +18,7 @@ pub enum TokenType {
     Ptr,
     Operator,
     SecondOperator,
+    Semicolon,
     Round,
     Curly,
     Square,
@@ -35,13 +36,13 @@ pub struct Token {
 
 impl fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(TokenType: {:?}, TokenValue: {}, Line: {}, Column {})", self.token_type, self.value, self.line, self.column)
+        write!(f, "(TokenType: {:?}, TokenValue: {}, Line: {}, Column {})", self.token_type, self.value.replace("\n", "\\n"), self.line, self.column)
     }
 }
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "(\x1b[33mTokenType:\x1b[0m \x1b[35m{:?}\x1b[0m, \x1b[33mTokenValue:\x1b[0m \x1b[32m\"{}\"\x1b[0m, \x1b[33mLine:\x1b[0m \x1b[36m{}\x1b[0m, \x1b[33mColumn:\x1b[0m \x1b[36m{}\x1b[0m)", self.token_type, self.value, self.line, self.column)
+        write!(f, "(\x1b[33mTokenType:\x1b[0m \x1b[35m{:?}\x1b[0m, \x1b[33mTokenValue:\x1b[0m \x1b[32m\"{}\"\x1b[0m, \x1b[33mLine:\x1b[0m \x1b[36m{}\x1b[0m, \x1b[33mColumn:\x1b[0m \x1b[36m{}\x1b[0m)", self.token_type, self.value.replace("\n", "\\n"), self.line, self.column)
     }
 }
 
@@ -50,7 +51,7 @@ pub struct Node {
     token_regex: Lazy<Regex>
 }
 
-const SYNTAX: [Node; 12] = [
+const SYNTAX: [Node; 13] = [
     Node {
         token_type: TokenType::Newline,
         token_regex: Lazy::new(|| Regex::new(r"^\n+").unwrap()),
@@ -77,27 +78,31 @@ const SYNTAX: [Node; 12] = [
     },
     Node {
         token_type: TokenType::Operator,
-        token_regex: Lazy::new(|| Regex::new(r"^[\-|\+|\*]").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^[\-|\+|\*|\=]").unwrap())
     },
     Node {
         token_type: TokenType::Round,
-        token_regex: Lazy::new(|| Regex::new(r"\((?:[^()]|(?R))*\)").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^\((?:[^()]|(?R))*\)").unwrap())
     },
     Node {
         token_type: TokenType::Curly,
-        token_regex: Lazy::new(|| Regex::new(r"\{(?:[^{}]|(?R))*}").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^\{(?:[^{}]|(?R))*}").unwrap())
     },
     Node {
         token_type: TokenType::Square,
-        token_regex: Lazy::new(|| Regex::new(r"\[(?:[^\[\]]|(?R))*]").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^\[(?:[^\[\]]|(?R))*]").unwrap())
     },
     Node {
         token_type: TokenType::Angle,
-        token_regex: Lazy::new(|| Regex::new(r"<(?:[^<>]|(?R))*>").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^<(?:[^<>]|(?R))*>").unwrap())
+    },
+    Node {
+        token_type: TokenType::Semicolon,
+        token_regex: Lazy::new(|| Regex::new(r"^\;").unwrap())
     },
     Node {
         token_type: TokenType::SecondOperator,
-        token_regex: Lazy::new(|| Regex::new(r"^,|;").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^,").unwrap())
     },
 ];
 

@@ -4,6 +4,7 @@ use std::fmt;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AstType {
     FunctionDeceleration,
+    VoidFunctionDeceleration,
     VariableDeceleration,
     MutVariableDeceleration,
     Other
@@ -59,12 +60,16 @@ impl Parser {
         let token = &self.tokens[index];
         match token.token_type {
             TokenType::Identifier => {
-                if self.tokens.len()-index > 2 && self.tokens[index+1].token_type==TokenType::Identifier && self.tokens[index+2].token_type==TokenType::Round && self.tokens[index+3].token_type==TokenType::Curly {
+                if self.tokens.len()-index > 3 && self.tokens[index+1].token_type==TokenType::Identifier && self.tokens[index+2].token_type==TokenType::Round && self.tokens[index+3].token_type==TokenType::Curly {
                     ast_res.tokens.push(self.tokens[index].clone());
                     ast_res.tokens.push(self.tokens[index+1].clone());
                     ast_res.tokens.push(self.tokens[index+2].clone());
                     ast_res.tokens.push(self.tokens[index+3].clone());
-                    ast_res.ast_type = AstType::FunctionDeceleration;
+                    if token.value == "void" {
+                        ast_res.ast_type = AstType::VoidFunctionDeceleration;
+                    } else {
+                        ast_res.ast_type = AstType::FunctionDeceleration;
+                    }
                     self.index += 3;
                 } else {
                     loop {
