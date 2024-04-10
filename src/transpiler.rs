@@ -1,4 +1,4 @@
-use crate::lexer::{lex, Token, TokenType};
+use crate::lexer::{lex, TokenType};
 use crate::parser::{Parser, AstType};
 
 pub fn auto_strip(input: String) -> String {
@@ -32,7 +32,7 @@ pub fn transpile(input: String, indent: u32) -> String {
         } else if ast.ast_type == AstType::VoidFunctionDeceleration {
             result += format!("fn {}{} {}", ast.tokens[1].value, ast.tokens[2].value, transpile(ast.tokens[3].value.clone(), indent+1)).as_str();
         } else if ast.ast_type == AstType::VariableDeceleration {
-            let mut o = String::new();
+            let _o = String::new();
             let mut oy = ast.tokens.clone();
             oy.remove(0);
             if oy.len() > 1 {
