@@ -60,8 +60,9 @@ impl Parser {
         let token = &self.tokens[index];
         match token.token_type {
             TokenType::Identifier => {
+                ast_res.tokens.push(self.tokens[index].clone());
+                self.index += 1;
                 if self.tokens.len()-index > 3 && self.tokens[index+1].token_type==TokenType::Identifier && self.tokens[index+2].token_type==TokenType::Round && self.tokens[index+3].token_type==TokenType::Curly {
-                    ast_res.tokens.push(self.tokens[index].clone());
                     ast_res.tokens.push(self.tokens[index+1].clone());
                     ast_res.tokens.push(self.tokens[index+2].clone());
                     ast_res.tokens.push(self.tokens[index+3].clone());

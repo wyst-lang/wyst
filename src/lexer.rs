@@ -78,7 +78,7 @@ const SYNTAX: [Node; 13] = [
     },
     Node {
         token_type: TokenType::Operator,
-        token_regex: Lazy::new(|| Regex::new(r"^[\-|\+|\*|\=]").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^[\-|\+|\*|\=|\!]").unwrap())
     },
     Node {
         token_type: TokenType::Round,
