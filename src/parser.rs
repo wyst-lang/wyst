@@ -51,7 +51,6 @@ pub struct Parser {
 const BRACKETS: [TokenType; 3] = [TokenType::Round, TokenType::Curly, TokenType::Square];
 
 pub fn pre_parse (tokens: Vec<Token>) -> Vec<Token> {
-    println!("{:?}", tokens);
     let mut result: Vec<Token> = Vec::new();
     let mut bracket: Vec<TokenType> = Vec::new();
     let mut inner_string = String::new();
