@@ -1,4 +1,4 @@
-use  crate::lexer::{Token, TokenType};
+use  crate::lexer::{LexerState, Token, TokenType};
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -48,10 +48,73 @@ pub struct Parser {
     pub index: u32
 }
 
+const BRACKETS: [TokenType; 3] = [TokenType::Round, TokenType::Curly, TokenType::Square];
+
+pub fn pre_parse (tokens: Vec<Token>) -> Vec<Token> {
+    println!("{:?}", tokens);
+    let mut result: Vec<Token> = Vec::new();
+    let mut bracket: Vec<TokenType> = Vec::new();
+    let mut inner_string = String::new();
+    let mut bracket_state: LexerState = LexerState {line: 0, column: 0};
+    for token in &tokens {
+        let is_bracket = BRACKETS.contains(&token.token_type);
+        match token.value.as_str() {
+            "(" => {
+                bracket.push(token.token_type);
+                inner_string += token.value.as_str();
+            }
+            ")" => {
+                if bracket[bracket.len()-1] == token.token_type {
+                    bracket.pop();
+                    inner_string += token.value.as_str();
+                    bracket_state.line = token.line;
+                    bracket_state.column = token.column;
+                }
+            }
+            "{" => {
+                bracket.push(token.token_type);
+                inner_string += token.value.as_str();
+            }
+            "}" => {
+                if bracket[bracket.len()-1] == token.token_type {
+                    bracket.pop();
+                    inner_string += token.value.as_str();
+                    bracket_state.line = token.line;
+                    bracket_state.column = token.column;
+                }
+            }
+            "[" => {
+                bracket.push(token.token_type);
+                inner_string += token.value.as_str();
+            }
+            "]" => {
+                if bracket[bracket.len()-1] == token.token_type {
+                    bracket.pop();
+                    inner_string += token.value.as_str();
+                    bracket_state.line = token.line;
+                    bracket_state.column = token.column;
+                }
+            }
+            _ => {
+                if bracket.len() > 0 {
+                    inner_string += token.value.as_str()
+                } else if token.token_type != TokenType::Whitespace {
+                    result.push(token.clone())
+                }
+            }
+        }
+        if is_bracket && bracket.len() == 0 {
+            result.push(Token {token_type: token.token_type, value: inner_string.to_string(), line: bracket_state.line, column: bracket_state.column});
+            inner_string = String::new();
+        }
+    }
+
+    result
+}
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Parser {
-        Parser {tokens: tokens, index: 0}
+        Parser {tokens: pre_parse(tokens), index: 0}
     }
     pub fn next(&mut self) -> Ast {
         let mut ast_res: Ast = Ast {tokens: vec![], ast_type: AstType::Other};
