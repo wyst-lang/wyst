@@ -10,6 +10,7 @@ pub enum AstType {
     VariableDeceleration,
     MutVariableDeceleration,
     Include,
+    IncludeLocal,
     Other
 }
 
@@ -171,11 +172,14 @@ impl Parser {
             }
             TokenType::Include => {
                 if let Some(caps) = self.include_regex.captures(&token.value) {
-                    println!("bruh: {}", &caps[1]);
+                    ast_res.tokens.push(Token {token_type: TokenType::String, value: caps[2].to_owned().to_string(), line: 0, column: 0});
+                    ast_res.ast_type = AstType::Include;
                 } else if let Some(caps) = self.include_regex_local.captures(&token.value) {
-                    // ast_res.tokens.push(Token {token_type: TokenType::, value: &caps[1], line: 0, column: 0});
+                    ast_res.tokens.push(Token {token_type: TokenType::String, value: caps[2].to_owned().to_string(), line: 0, column: 0});
+                    ast_res.ast_type = AstType::IncludeLocal;
                 } else {
                     ast_res.tokens.push(token.clone());
+                    ast_res.ast_type = AstType::Include;
                 }
             }
             _ => {

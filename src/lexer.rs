@@ -115,10 +115,6 @@ const SYNTAX: [Node; 15] = [
     }
 ];
 
-fn remove_first_char(value: &str) -> String {
-    value.chars().skip(1).collect()
-}
-
 fn get_first_char(value: &str) -> String {
     value.chars().next().unwrap().to_string()
 }
