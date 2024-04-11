@@ -1,5 +1,7 @@
 use  crate::lexer::{LexerState, Token, TokenType};
 use std::fmt;
+use regex::Regex;
+use once_cell::sync::Lazy;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AstType {
@@ -7,6 +9,7 @@ pub enum AstType {
     VoidFunctionDeceleration,
     VariableDeceleration,
     MutVariableDeceleration,
+    Include,
     Other
 }
 
@@ -45,12 +48,15 @@ impl fmt::Debug for Ast {
 
 pub struct Parser {
     pub tokens: Vec<Token>,
-    pub index: u32
+    pub index: u32,
+    pub include_regex: Lazy<Regex>,
+    pub include_regex_local: Lazy<Regex>
 }
 
 const BRACKETS: [TokenType; 3] = [TokenType::Round, TokenType::Curly, TokenType::Square];
 
 pub fn pre_parse (tokens: Vec<Token>) -> Vec<Token> {
+    println!("{:?}", tokens);
     let mut result: Vec<Token> = Vec::new();
     let mut bracket: Vec<TokenType> = Vec::new();
     let mut inner_string = String::new();
@@ -113,7 +119,12 @@ pub fn pre_parse (tokens: Vec<Token>) -> Vec<Token> {
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Parser {
-        Parser {tokens: pre_parse(tokens), index: 0}
+        Parser {
+            tokens: pre_parse(tokens),
+            index: 0,
+            include_regex: Lazy::new(|| Regex::new(r"^(#include *)<(.*?)>").unwrap()),
+            include_regex_local: Lazy::new(|| Regex::new(r#"^(#include *)"(.*?)""#).unwrap())
+        }
     }
     pub fn next(&mut self) -> Ast {
         let mut ast_res: Ast = Ast {tokens: vec![], ast_type: AstType::Other};
@@ -156,6 +167,15 @@ impl Parser {
                             break;
                         } 
                     }
+                }
+            }
+            TokenType::Include => {
+                if let Some(caps) = self.include_regex.captures(&token.value) {
+                    println!("bruh: {}", &caps[1]);
+                } else if let Some(caps) = self.include_regex_local.captures(&token.value) {
+                    // ast_res.tokens.push(Token {token_type: TokenType::, value: &caps[1], line: 0, column: 0});
+                } else {
+                    ast_res.tokens.push(token.clone());
                 }
             }
             _ => {

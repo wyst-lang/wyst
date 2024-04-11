@@ -22,7 +22,8 @@ pub enum TokenType {
     Round,
     Curly,
     Square,
-    Angle,
+    Include,
+    String,
     // EOF,
 }
 
@@ -51,7 +52,7 @@ pub struct Node {
     token_regex: Lazy<Regex>
 }
 
-const SYNTAX: [Node; 12] = [
+const SYNTAX: [Node; 15] = [
     Node {
         token_type: TokenType::Semicolon,
         token_regex: Lazy::new(|| Regex::new(r"^\;").unwrap())
@@ -59,6 +60,10 @@ const SYNTAX: [Node; 12] = [
     Node {
         token_type: TokenType::SecondOperator,
         token_regex: Lazy::new(|| Regex::new(r"^,").unwrap())
+    },
+    Node {
+        token_type: TokenType::String,
+        token_regex: Lazy::new(|| Regex::new("^\"").unwrap())
     },
     Node {
         token_type: TokenType::Newline,
@@ -86,7 +91,7 @@ const SYNTAX: [Node; 12] = [
     },
     Node {
         token_type: TokenType::Operator,
-        token_regex: Lazy::new(|| Regex::new(r"^[\-|\+|\*|\=|\!]").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^[|\-|\+|\*|\=|\!]").unwrap())
     },
     Node {
         token_type: TokenType::Round,
@@ -100,41 +105,123 @@ const SYNTAX: [Node; 12] = [
         token_type: TokenType::Square,
         token_regex: Lazy::new(|| Regex::new(r"^[\[|\]]").unwrap())
     },
+    Node {
+        token_type: TokenType::Include,
+        token_regex: Lazy::new(|| Regex::new(r"^#include *<(.*?)>").unwrap())
+    },
+    Node {
+        token_type: TokenType::Include,
+        token_regex: Lazy::new(|| Regex::new(r#"^#include *"(.*?)""#).unwrap())
+    }
 ];
+
+fn remove_first_char(value: &str) -> String {
+    value.chars().skip(1).collect()
+}
+
+fn get_first_char(value: &str) -> String {
+    value.chars().next().unwrap().to_string()
+}
+
+fn get_second_char(value: &str) -> String {
+    let mut sv2 = value.chars();
+    sv2.next();
+    sv2.next().unwrap().to_string()
+}
 
 pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
     let mut state = LexerState { line: 1, column: 1 };
     let mut tokens: Vec<Token> = Vec::new();
-
+    let mut string_vec: Vec<char> = Vec::new();
+    let mut inner_string = String::new();
+    // let mut bracket_state: LexerState = LexerState {line: 0, column: 0};
     while !code.is_empty() {
         let mut is_match = false;
-        for s in &SYNTAX {
-            if let Some(caps) = s.token_regex.captures(code) {
+        let svl = string_vec.len();
+        match code.chars().next().unwrap() {
+            '\"' => {
                 is_match = true;
-                code = code.strip_prefix(&caps[0]).unwrap_or(code);
-                if (!use_whitespace && s.token_type!=TokenType::Whitespace) || use_whitespace {
-                    tokens.push(Token {
-                        token_type: s.token_type,
-                        value: caps[0].to_string(),
-                        line: state.line,
-                        column: state.column
-                    });
+                code = code.strip_prefix("\"").unwrap_or(code);
+                inner_string += "\"";
+                if svl == 0 {
+                    string_vec.push('\"');
+                } else if string_vec[svl-1] == '\"' {
+                    string_vec.pop();
+                    if svl == 1 {
+                        tokens.push(Token {
+                            token_type:TokenType::String,
+                            value: inner_string.clone(),
+                            line: state.line,
+                            column: state.column
+                        });
+                        inner_string = String::new();
+                    }
                 }
-
-                match s.token_type {
-                    TokenType::Newline => {
-                        state.line += caps[0].len();
-                        state.column = 1;
-                    },
-                    _ => { state.column += caps[0].len(); }
+            }
+            '\'' => {
+                is_match = true;
+                code = code.strip_prefix("\'").unwrap_or(code);
+                inner_string += "\'";
+                if svl == 0 {
+                    string_vec.push('\'');
+                } else if string_vec[svl-1] == '\'' {
+                    string_vec.pop();
+                    if svl == 1 {
+                        tokens.push(Token {
+                            token_type:TokenType::String,
+                            value: inner_string.clone(),
+                            line: state.line,
+                            column: state.column
+                        });
+                        inner_string = String::new();
+                    }
                 }
-            } else {
-                continue;
-            };
-            break;
+            }
+            _ => {
+                if svl > 0 {
+                    let cfc = get_first_char(&code);
+                    let cfc1 = get_second_char(&code);
+                    inner_string += cfc.as_str();
+                    code = code.strip_prefix(&cfc).unwrap_or(code);
+                    is_match = true;
+                    if cfc == "\\" && (cfc1 == "\"" || cfc1 == "'") {
+                        inner_string += cfc1.as_str();
+                        code = code.strip_prefix(&cfc1).unwrap_or(code);
+                        is_match = true;
+                    }
+                } else {
+                    for s in &SYNTAX {
+                        if let Some(caps) = s.token_regex.captures(code) {
+                            is_match = true;
+                            code = code.strip_prefix(&caps[0]).unwrap_or(code);
+                            if (!use_whitespace && s.token_type!=TokenType::Whitespace) || use_whitespace {
+                                tokens.push(Token {
+                                    token_type: s.token_type,
+                                    value: caps[0].to_string(),
+                                    line: state.line,
+                                    column: state.column
+                                });
+                            }
+                            match s.token_type {
+                                TokenType::Newline => {
+                                    state.line += caps[0].len();
+                                    state.column = 1;
+                                },
+                                _ => {
+                                    state.column += caps[0].len();
+                                }
+                            }
+                        } else {
+                            continue;
+                        };
+                        break;
+                    }
+                }
+                
+            }
         }
         if !is_match {
-            println!("Error: syntax -> {code}");
+            println!("Error: syntax ->{code}");
             break;
         }
     }
