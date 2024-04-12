@@ -1,11 +1,11 @@
 <p align="center">
-<img src="img/Wysp.png" style="height: 128px">
+<img src="img/wyst-bg.jpg" style="height: 128px">
 </p>
 
-<h1 align="center">Wysp
+<h1 align="center">Wyst
 </h1>
 
-<h3 align="center">Wysp is a programing language that has similar syntax to C and transpiles to Python</h3>
+<h3 align="center">Wyst is a programing language that has similar syntax to C and transpiles to Python</h3>
 
 # Alpha
 We aren't even complete yet. You can help us if you are interested
