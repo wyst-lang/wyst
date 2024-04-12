@@ -1,6 +1,6 @@
 use regex::Regex;
 use once_cell::sync::Lazy;
-use std::{fmt, os::linux::raw::stat};
+use std::fmt;
 
 pub struct LexerState {
     pub line: usize,
