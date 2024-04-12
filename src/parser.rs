@@ -1,4 +1,4 @@
-use  crate::lexer::{LexerState, Token, TokenType};
+use  crate::lexer::{Token, TokenType};
 use std::fmt;
 use regex::Regex;
 use once_cell::sync::Lazy;
@@ -54,74 +54,10 @@ pub struct Parser {
     pub include_regex_local: Lazy<Regex>
 }
 
-const BRACKETS: [TokenType; 3] = [TokenType::Round, TokenType::Curly, TokenType::Square];
-
-pub fn pre_parse (tokens: Vec<Token>) -> Vec<Token> {
-    println!("{:?}", tokens);
-    let mut result: Vec<Token> = Vec::new();
-    let mut bracket: Vec<TokenType> = Vec::new();
-    let mut inner_string = String::new();
-    let mut bracket_state: LexerState = LexerState {line: 0, column: 0};
-    for token in &tokens {
-        let is_bracket = BRACKETS.contains(&token.token_type);
-        match token.value.as_str() {
-            "(" => {
-                bracket.push(token.token_type);
-                inner_string += token.value.as_str();
-            }
-            ")" => {
-                if bracket[bracket.len()-1] == token.token_type {
-                    bracket.pop();
-                    inner_string += token.value.as_str();
-                    bracket_state.line = token.line;
-                    bracket_state.column = token.column;
-                }
-            }
-            "{" => {
-                bracket.push(token.token_type);
-                inner_string += token.value.as_str();
-            }
-            "}" => {
-                if bracket[bracket.len()-1] == token.token_type {
-                    bracket.pop();
-                    inner_string += token.value.as_str();
-                    bracket_state.line = token.line;
-                    bracket_state.column = token.column;
-                }
-            }
-            "[" => {
-                bracket.push(token.token_type);
-                inner_string += token.value.as_str();
-            }
-            "]" => {
-                if bracket[bracket.len()-1] == token.token_type {
-                    bracket.pop();
-                    inner_string += token.value.as_str();
-                    bracket_state.line = token.line;
-                    bracket_state.column = token.column;
-                }
-            }
-            _ => {
-                if bracket.len() > 0 {
-                    inner_string += token.value.as_str()
-                } else if token.token_type != TokenType::Whitespace {
-                    result.push(token.clone())
-                }
-            }
-        }
-        if is_bracket && bracket.len() == 0 {
-            result.push(Token {token_type: token.token_type, value: inner_string.to_string(), line: bracket_state.line, column: bracket_state.column});
-            inner_string = String::new();
-        }
-    }
-
-    result
-}
-
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Parser {
         Parser {
-            tokens: pre_parse(tokens),
+            tokens: tokens,
             index: 0,
             include_regex: Lazy::new(|| Regex::new(r"^(#include *)<(.*?)>").unwrap()),
             include_regex_local: Lazy::new(|| Regex::new(r#"^(#include *)"(.*?)""#).unwrap())
@@ -145,7 +81,7 @@ impl Parser {
                     } else {
                         ast_res.ast_type = AstType::FunctionDeceleration;
                     }
-                    self.index += 3;
+                    self.index += 2;
                 } else {
                     loop {
                         if index+1 >= self.tokens.len() {break;}

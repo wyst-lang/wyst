@@ -21,7 +21,7 @@ pub fn transpile(input: String, indent: u32) -> String {
         input = auto_strip(input);
     }
     let mut result = String::new();
-    let tokens = lex(input.as_str(), true);
+    let tokens = lex(input.as_str(), false);
     println!("\n\n\n\n");
     let mut full_ast = Parser::new(tokens.clone());
     while full_ast.tokens.len() > full_ast.index as usize {

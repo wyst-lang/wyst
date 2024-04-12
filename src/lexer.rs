@@ -1,6 +1,6 @@
 use regex::Regex;
 use once_cell::sync::Lazy;
-use std::fmt;
+use std::{fmt, os::linux::raw::stat};
 
 pub struct LexerState {
     pub line: usize,
@@ -52,7 +52,7 @@ pub struct Node {
     token_regex: Lazy<Regex>
 }
 
-const SYNTAX: [Node; 15] = [
+const SYNTAX: [Node; 14] = [
     Node {
         token_type: TokenType::Semicolon,
         token_regex: Lazy::new(|| Regex::new(r"^\;").unwrap())
@@ -64,10 +64,6 @@ const SYNTAX: [Node; 15] = [
     Node {
         token_type: TokenType::String,
         token_regex: Lazy::new(|| Regex::new("^\"").unwrap())
-    },
-    Node {
-        token_type: TokenType::Newline,
-        token_regex: Lazy::new(|| Regex::new(r"^\n+").unwrap()),
     },
     Node {
         token_type: TokenType::Whitespace,
@@ -128,21 +124,21 @@ fn get_second_char(value: &str) -> String {
 pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
     let mut state = LexerState { line: 1, column: 1 };
     let mut tokens: Vec<Token> = Vec::new();
-    let mut string_vec: Vec<char> = Vec::new();
+    let mut bracket_vec: Vec<char> = Vec::new();
     let mut inner_string = String::new();
     // let mut bracket_state: LexerState = LexerState {line: 0, column: 0};
     while !code.is_empty() {
         let mut is_match = false;
-        let svl = string_vec.len();
+        let svl = bracket_vec.len();
         match code.chars().next().unwrap() {
             '\"' => {
                 is_match = true;
                 code = code.strip_prefix("\"").unwrap_or(code);
                 inner_string += "\"";
                 if svl == 0 {
-                    string_vec.push('\"');
-                } else if string_vec[svl-1] == '\"' {
-                    string_vec.pop();
+                    bracket_vec.push('\"');
+                } else if bracket_vec[svl-1] == '\"' {
+                    bracket_vec.pop();
                     if svl == 1 {
                         tokens.push(Token {
                             token_type:TokenType::String,
@@ -159,9 +155,9 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
                 code = code.strip_prefix("\'").unwrap_or(code);
                 inner_string += "\'";
                 if svl == 0 {
-                    string_vec.push('\'');
-                } else if string_vec[svl-1] == '\'' {
-                    string_vec.pop();
+                    bracket_vec.push('\'');
+                } else if bracket_vec[svl-1] == '\'' {
+                    bracket_vec.pop();
                     if svl == 1 {
                         tokens.push(Token {
                             token_type:TokenType::String,
@@ -171,6 +167,96 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
                         });
                         inner_string = String::new();
                     }
+                }
+            }
+            '{' => {
+                is_match = true;
+                code = code.strip_prefix("{").unwrap_or(code);
+                inner_string += "{";
+                if svl == 0 {
+                    bracket_vec.push('{');
+                }
+            }
+            '}' => {
+                is_match = true;
+                code = code.strip_prefix("}").unwrap_or(code);
+                println!("{code} 585");
+                inner_string += "}";
+                if bracket_vec[svl-1] == '{' {
+                    bracket_vec.pop();
+                    tokens.push(Token {
+                        token_type: TokenType::Curly,
+                        value: inner_string.clone(),
+                        line: state.line,
+                        column: state.column
+                    });
+                    inner_string = String::new();
+                    state.column += inner_string.len();
+                }
+            }
+            '(' => {
+                is_match = true;
+                code = code.strip_prefix("(").unwrap_or(code);
+                inner_string += "(";
+                if svl == 0 {
+                    bracket_vec.push('(');
+                }
+            }
+            ')' => {
+                is_match = true;
+                code = code.strip_prefix(")").unwrap_or(code);
+                inner_string += ")";
+                if bracket_vec[svl-1] == '(' {
+                    bracket_vec.pop();
+                    tokens.push(Token {
+                        token_type:TokenType::Round,
+                        value: inner_string.clone(),
+                        line: state.line,
+                        column: state.column
+                    });
+                    inner_string = String::new();
+                    state.column += inner_string.len();
+                }
+            }
+            '[' => {
+                is_match = true;
+                code = code.strip_prefix("[").unwrap_or(code);
+                inner_string += "[";
+                
+                if svl == 0 {
+                    bracket_vec.push('[');
+                }
+            }
+            ']' => {
+                is_match = true;
+                code = code.strip_prefix("]").unwrap_or(code);
+                inner_string += "]";
+                if bracket_vec[svl-1] == '[' {
+                    bracket_vec.pop();
+                    tokens.push(Token {
+                        token_type:TokenType::Square,
+                        value: inner_string.clone(),
+                        line: state.line,
+                        column: state.column
+                    });
+                    inner_string = String::new();
+                    state.column += inner_string.len();
+                }
+            }
+            '\n' => {
+                is_match = true;
+                code = code.strip_prefix("\n").unwrap_or(code);
+                state.line += 1;
+                state.column = 1;
+                if svl > 0 {
+                    inner_string+="\n";
+                } else {
+                    tokens.push(Token {
+                        token_type: TokenType::Newline,
+                        value: "\n".to_string(),
+                        line: state.line,
+                        column: state.column
+                    });
                 }
             }
             _ => {
@@ -199,10 +285,6 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
                                 });
                             }
                             match s.token_type {
-                                TokenType::Newline => {
-                                    state.line += caps[0].len();
-                                    state.column = 1;
-                                },
                                 _ => {
                                     state.column += caps[0].len();
                                 }
