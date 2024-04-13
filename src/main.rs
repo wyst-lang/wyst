@@ -5,7 +5,8 @@ use std::fs;
 
 
 fn main() {
-    let contents = fs::read_to_string("code.ws").expect("cannot read for some reason");
+    let code_file = "code.ws";
+    let contents = fs::read_to_string(code_file).expect("cannot read for some reason");
     let result = transpiler::transpile(contents, 0);
     println!("{result}")
 }

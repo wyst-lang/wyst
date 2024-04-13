@@ -121,7 +121,7 @@ fn get_second_char(value: &str) -> String {
     sv2.next().unwrap().to_string()
 }
 
-pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
+pub fn lex(mut code: &str, use_whitespace: bool) -> Result<Vec<Token>, (LexerState, Vec<Token>)> {
     let mut state = LexerState { line: 1, column: 1 };
     let mut tokens: Vec<Token> = Vec::new();
     let mut bracket_vec: Vec<char> = Vec::new();
@@ -292,9 +292,9 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
             }
         }
         if !is_match {
-            println!("Error: syntax ->{code}");
-            break;
+            return Err((state, tokens));
+            // break;
         }
     }
-    tokens
+    Ok(tokens)
 }
