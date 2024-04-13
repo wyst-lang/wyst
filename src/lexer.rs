@@ -172,7 +172,6 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
             '{' => {
                 is_match = true;
                 code = code.strip_prefix("{").unwrap_or(code);
-                inner_string += "{";
                 if svl == 0 {
                     bracket_vec.push('{');
                 }
@@ -180,8 +179,6 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
             '}' => {
                 is_match = true;
                 code = code.strip_prefix("}").unwrap_or(code);
-                println!("{code} 585");
-                inner_string += "}";
                 if bracket_vec[svl-1] == '{' {
                     bracket_vec.pop();
                     tokens.push(Token {
@@ -197,7 +194,6 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
             '(' => {
                 is_match = true;
                 code = code.strip_prefix("(").unwrap_or(code);
-                inner_string += "(";
                 if svl == 0 {
                     bracket_vec.push('(');
                 }
@@ -205,7 +201,6 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
             ')' => {
                 is_match = true;
                 code = code.strip_prefix(")").unwrap_or(code);
-                inner_string += ")";
                 if bracket_vec[svl-1] == '(' {
                     bracket_vec.pop();
                     tokens.push(Token {
@@ -221,7 +216,6 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
             '[' => {
                 is_match = true;
                 code = code.strip_prefix("[").unwrap_or(code);
-                inner_string += "[";
                 
                 if svl == 0 {
                     bracket_vec.push('[');
@@ -230,7 +224,6 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Vec<Token> {
             ']' => {
                 is_match = true;
                 code = code.strip_prefix("]").unwrap_or(code);
-                inner_string += "]";
                 if bracket_vec[svl-1] == '[' {
                     bracket_vec.pop();
                     tokens.push(Token {
