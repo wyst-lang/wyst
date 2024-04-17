@@ -57,6 +57,8 @@ pub fn transpile(input: String, indent: u32) -> String {
                     } else {
                         result += format!("let mut {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
                     }
+                } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Round {
+                    result += format!("({})", ast.tokens[0].value).as_str();
                 } else {
                     if ast.tokens[0].token_type==TokenType::Newline {
                         result += (ast.tokens[0].value.as_str().to_owned() + (" ".repeat((indent as usize)*2).as_str())).as_str()
