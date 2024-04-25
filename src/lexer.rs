@@ -115,155 +115,132 @@ fn get_first_char(value: &str) -> String {
     value.chars().next().unwrap().to_string()
 }
 
-fn get_second_char(value: &str) -> String {
-    let mut sv2 = value.chars();
-    sv2.next();
-    sv2.next().unwrap().to_string()
-}
-
 pub fn lex(mut code: &str, use_whitespace: bool) -> Result<Vec<Token>, (LexerState, Vec<Token>)> {
     let mut state = LexerState { line: 1, column: 1 };
     let mut tokens: Vec<Token> = Vec::new();
-    let mut bracket_vec: Vec<char> = Vec::new();
-    let mut inner_string = String::new();
-    // let mut bracket_state: LexerState = LexerState {line: 0, column: 0};
+    let mut brstr: String = String::new();
+    let mut brvct: Vec<u8> = Vec::new();
+    let mut inside_str: u8 = 0;
     while !code.is_empty() {
         let mut is_match = false;
-        let svl = bracket_vec.len();
-        match code.chars().next().unwrap() {
-            '\"' => {
-                is_match = true;
-                code = code.strip_prefix("\"").unwrap_or(code);
-                inner_string += "\"";
-                if svl == 0 {
-                    bracket_vec.push('\"');
-                } else if bracket_vec[svl-1] == '\"' {
-                    bracket_vec.pop();
-                    if svl == 1 {
+        let fch = get_first_char(code);
+        match fch.as_str() {
+            "\"" => {
+                brstr += "\"";
+                code = code.strip_prefix(fch.as_str()).expect("");
+                if inside_str == 1 {
+                    inside_str = 0;
+                    if brvct.len() == 0 {
                         tokens.push(Token {
-                            token_type:TokenType::String,
-                            value: inner_string.clone(),
-                            line: state.line,
-                            column: state.column
+                            token_type: TokenType::String,
+                            value: brstr.clone(),
+                            column: state.line,
+                            line: state.column
                         });
-                        inner_string = String::new();
+                        brstr = String::new();
                     }
+                } else if inside_str == 0 {
+                    inside_str = 1;
                 }
             }
-            '\'' => {
-                is_match = true;
-                code = code.strip_prefix("\'").unwrap_or(code);
-                inner_string += "\'";
-                if svl == 0 {
-                    bracket_vec.push('\'');
-                } else if bracket_vec[svl-1] == '\'' {
-                    bracket_vec.pop();
-                    if svl == 1 {
+            "'" => {
+                brstr += "'";
+                code = code.strip_prefix(fch.as_str()).expect("");
+                if inside_str == 2 {
+                    inside_str = 0;
+                    if brvct.len() == 0 {
                         tokens.push(Token {
-                            token_type:TokenType::String,
-                            value: inner_string.clone(),
-                            line: state.line,
-                            column: state.column
+                            token_type: TokenType::String,
+                            value: brstr.clone(),
+                            column: state.line,
+                            line: state.column
                         });
-                        inner_string = String::new();
+                        brstr = String::new();
                     }
+                } else if inside_str == 0 {
+                    inside_str = 2;
                 }
             }
-            '{' => {
-                is_match = true;
-                code = code.strip_prefix("{").unwrap_or(code);
-                if svl == 0 {
-                    bracket_vec.push('{');
+            "\\" => {
+                brstr += "\\";
+                code = code.strip_prefix(fch.as_str()).expect("");
+                if code.len() > 0 {
+                    let sch = get_first_char(code);
+                    code = code.strip_prefix(sch.as_str()).expect("");
+                    brstr += &sch;
                 }
             }
-            '}' => {
-                is_match = true;
-                code = code.strip_prefix("}").unwrap_or(code);
-                if bracket_vec[svl-1] == '{' {
-                    bracket_vec.pop();
+            "{" => {
+                code = code.strip_prefix(fch.as_str()).expect("");
+                if brvct.len() > 0 {
+                    brstr += "{";
+                }
+                brvct.push(0);
+            }
+            "}" => {
+                code = code.strip_prefix(fch.as_str()).expect("");
+                brvct.pop();
+                if brvct.len() == 0 {
                     tokens.push(Token {
                         token_type: TokenType::Curly,
-                        value: inner_string.clone(),
-                        line: state.line,
-                        column: state.column
+                        value: brstr.clone(),
+                        column: state.line,
+                        line: state.column
                     });
-                    inner_string = String::new();
-                    state.column += inner_string.len();
-                }
-            }
-            '(' => {
-                is_match = true;
-                code = code.strip_prefix("(").unwrap_or(code);
-                if svl == 0 {
-                    bracket_vec.push('(');
-                }
-            }
-            ')' => {
-                is_match = true;
-                code = code.strip_prefix(")").unwrap_or(code);
-                if bracket_vec[svl-1] == '(' {
-                    bracket_vec.pop();
-                    tokens.push(Token {
-                        token_type:TokenType::Round,
-                        value: inner_string.clone(),
-                        line: state.line,
-                        column: state.column
-                    });
-                    inner_string = String::new();
-                    state.column += inner_string.len();
-                }
-            }
-            '[' => {
-                is_match = true;
-                code = code.strip_prefix("[").unwrap_or(code);
-                
-                if svl == 0 {
-                    bracket_vec.push('[');
-                }
-            }
-            ']' => {
-                is_match = true;
-                code = code.strip_prefix("]").unwrap_or(code);
-                if bracket_vec[svl-1] == '[' {
-                    bracket_vec.pop();
-                    tokens.push(Token {
-                        token_type:TokenType::Square,
-                        value: inner_string.clone(),
-                        line: state.line,
-                        column: state.column
-                    });
-                    inner_string = String::new();
-                    state.column += inner_string.len();
-                }
-            }
-            '\n' => {
-                is_match = true;
-                code = code.strip_prefix("\n").unwrap_or(code);
-                state.line += 1;
-                state.column = 1;
-                if svl > 0 {
-                    inner_string+="\n";
                 } else {
-                    tokens.push(Token {
-                        token_type: TokenType::Newline,
-                        value: "\n".to_string(),
-                        line: state.line,
-                        column: state.column
-                    });
+                    brstr += "}";
                 }
+            }
+            "(" => {
+                code = code.strip_prefix(fch.as_str()).expect("");
+                if brvct.len() > 0 {
+                    brstr += "(";
+                }
+                brvct.push(1);
+            }
+            ")" => {
+                code = code.strip_prefix(fch.as_str()).expect("");
+                brvct.pop();
+                if brvct.len() == 0 {
+                    tokens.push(Token {
+                        token_type: TokenType::Round,
+                        value: brstr.clone(),
+                        column: state.line,
+                        line: state.column
+                    });
+                } else {
+                    brstr += ")";
+                }
+            }
+            "[" => {
+                code = code.strip_prefix(fch.as_str()).expect("");
+                if brvct.len() > 0 {
+                    brstr += "[";
+                }
+                brvct.push(2);
+            }
+            "]" => {
+                code = code.strip_prefix(fch.as_str()).expect("");
+                brvct.pop();
+                if brvct.len() == 0 {
+                    tokens.push(Token {
+                        token_type: TokenType::Square,
+                        value: brstr.clone(),
+                        column: state.line,
+                        line: state.column
+                    });
+                } else {
+                    brstr += "]";
+                }
+            }
+            "\n" => {
+                code = code.strip_prefix(fch.as_str()).expect("");
+                state.line += 1;
             }
             _ => {
-                if svl > 0 {
-                    let cfc = get_first_char(&code);
-                    let cfc1 = get_second_char(&code);
-                    inner_string += cfc.as_str();
-                    code = code.strip_prefix(&cfc).unwrap_or(code);
-                    is_match = true;
-                    if cfc == "\\" && (cfc1 == "\"" || cfc1 == "'") {
-                        inner_string += cfc1.as_str();
-                        code = code.strip_prefix(&cfc1).unwrap_or(code);
-                        is_match = true;
-                    }
+                if inside_str > 0 || brvct.len() > 0 {
+                    code = code.strip_prefix(fch.as_str()).expect("");
+                    brstr += fch.as_str();
                 } else {
                     for s in &SYNTAX {
                         if let Some(caps) = s.token_regex.captures(code) {
@@ -277,23 +254,17 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Result<Vec<Token>, (LexerSta
                                     column: state.column
                                 });
                             }
-                            match s.token_type {
-                                _ => {
-                                    state.column += caps[0].len();
-                                }
-                            }
+                            state.column += caps[0].len();
                         } else {
                             continue;
                         };
                         break;
                     }
+                    if !is_match {
+                        return Err((state, tokens));
+                    }
                 }
-                
             }
-        }
-        if !is_match {
-            return Err((state, tokens));
-            // break;
         }
     }
     Ok(tokens)
