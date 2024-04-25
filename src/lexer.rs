@@ -134,8 +134,8 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Result<Vec<Token>, (LexerSta
                         tokens.push(Token {
                             token_type: TokenType::String,
                             value: brstr.clone(),
-                            column: state.line,
-                            line: state.column
+                            column: state.column,
+                            line: state.line
                         });
                         brstr = String::new();
                     }
@@ -152,8 +152,8 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Result<Vec<Token>, (LexerSta
                         tokens.push(Token {
                             token_type: TokenType::String,
                             value: brstr.clone(),
-                            column: state.line,
-                            line: state.column
+                            column: state.column,
+                            line: state.line
                         });
                         brstr = String::new();
                     }
@@ -184,8 +184,8 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Result<Vec<Token>, (LexerSta
                     tokens.push(Token {
                         token_type: TokenType::Curly,
                         value: brstr.clone(),
-                        column: state.line,
-                        line: state.column
+                        column: state.column,
+                        line: state.line
                     });
                 } else {
                     brstr += "}";
@@ -205,8 +205,8 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Result<Vec<Token>, (LexerSta
                     tokens.push(Token {
                         token_type: TokenType::Round,
                         value: brstr.clone(),
-                        column: state.line,
-                        line: state.column
+                        column: state.column,
+                        line: state.line
                     });
                 } else {
                     brstr += ")";
@@ -226,8 +226,8 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Result<Vec<Token>, (LexerSta
                     tokens.push(Token {
                         token_type: TokenType::Square,
                         value: brstr.clone(),
-                        column: state.line,
-                        line: state.column
+                        column: state.column,
+                        line: state.line
                     });
                 } else {
                     brstr += "]";
