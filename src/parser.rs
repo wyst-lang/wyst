@@ -82,18 +82,20 @@ impl Parser {
                         ast_res.ast_type = AstType::FunctionDeceleration;
                     }
                     self.index += 3;
-                } else if self.tokens.len()-index > 1 && token.value == "cb" && self.tokens[index+1].token_type == TokenType::Curly {
-                    ast_res.tokens.push(self.tokens[index+1].clone());
-                    ast_res.ast_type = AstType::CodeBlock;
-                    self.index += 1;
-                } else if self.tokens[index+1].token_type==TokenType::Identifier {
-                    ast_res.tokens.push(self.tokens[index+1].clone());
-                    ast_res.ast_type = AstType::VariableDeceleration;
-                    self.index += 1;
-                } else if self.tokens[index+1].value=="mut" && self.tokens[index+2].token_type==TokenType::Identifier {
-                    ast_res.tokens.push(self.tokens[index+2].clone());
-                    ast_res.ast_type = AstType::MutVariableDeceleration;
-                    self.index += 2;
+                } else if self.tokens.len()-index > 1 {
+                    if token.value == "cb" && self.tokens[index+1].token_type == TokenType::Curly {
+                        ast_res.tokens.push(self.tokens[index+1].clone());
+                        ast_res.ast_type = AstType::CodeBlock;
+                        self.index += 1;
+                    } else if self.tokens[index+1].token_type==TokenType::Identifier {
+                        ast_res.tokens.push(self.tokens[index+1].clone());
+                        ast_res.ast_type = AstType::VariableDeceleration;
+                        self.index += 1;
+                    } else if self.tokens[index+1].value=="mut" && self.tokens[index+2].token_type==TokenType::Identifier {
+                        ast_res.tokens.push(self.tokens[index+2].clone());
+                        ast_res.ast_type = AstType::MutVariableDeceleration;
+                        self.index += 2;
+                    }
                 }
             }
             TokenType::Include => {

@@ -236,6 +236,7 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Result<Vec<Token>, (LexerSta
             "\n" => {
                 code = code.strip_prefix(fch.as_str()).expect("");
                 state.line += 1;
+                state.column = 0;
             }
             _ => {
                 if inside_str > 0 || brvct.len() > 0 {
