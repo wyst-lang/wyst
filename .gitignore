@@ -15,5 +15,10 @@ Cargo.lock
 
 
 # Added by cargo
-
 /target
+
+#MacOS
+.DS_Store
+
+#Wyst files for testing
+*.wst
