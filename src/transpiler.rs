@@ -1,12 +1,12 @@
-use crate::lexer::{lex, TokenType};
+use crate::lexer::{lex, LexerState, TokenType};
 use crate::parser::{Parser, AstType};
 
-pub fn transpile(input: String, indent: u32) -> String {
+pub fn transpile(input: String, indent: u32, state: LexerState) -> String {
     let mut result = String::new();
     if indent > 0 {
         result += " ".repeat((indent as usize)*2).as_str();
     }
-    let lexer_out = lex(input.as_str(), false);
+    let lexer_out = lex(input.as_str(), false, state);
     match lexer_out {
         Ok(tokens) => {
             let mut full_ast = Parser::new(tokens.clone());
@@ -14,9 +14,9 @@ pub fn transpile(input: String, indent: u32) -> String {
                 let ast = full_ast.next();
                 println!("{ast}");
                 if ast.ast_type == AstType::FunctionDeceleration {
-                    result += format!("fn {}({}) -> {} {}", ast.tokens[1].value, ast.tokens[2].value,  ast.tokens[0].value, transpile(ast.tokens[3].value.clone(), indent+1)).as_str();
+                    result += format!("fn {}({}) -> {} {}", ast.tokens[1].value, ast.tokens[2].value,  ast.tokens[0].value, transpile(ast.tokens[3].value.clone(), indent+1, LexerState{line:ast.tokens[3].line,column:ast.tokens[3].column})).as_str();
                 } else if ast.ast_type == AstType::VoidFunctionDeceleration {
-                    result += format!("fn {}({}) {}", ast.tokens[1].value, ast.tokens[2].value, transpile(ast.tokens[3].value.clone(), indent+1)).as_str();
+                    result += format!("fn {}({}) {}", ast.tokens[1].value, ast.tokens[2].value, transpile(ast.tokens[3].value.clone(), indent+1, LexerState{line:ast.tokens[3].line,column:ast.tokens[3].column})).as_str();
                 } else if ast.ast_type == AstType::VariableDeceleration {
                     result += format!("let {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
                 } else if ast.ast_type == AstType::MutVariableDeceleration {

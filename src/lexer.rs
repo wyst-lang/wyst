@@ -115,51 +115,127 @@ fn get_first_char(value: &str) -> String {
     value.chars().next().unwrap().to_string()
 }
 
-pub fn lex(mut code: &str, use_whitespace: bool) -> Result<Vec<Token>, (LexerState, Vec<Token>)> {
-    let mut state = LexerState { line: 1, column: 1 };
+pub fn lex(mut code: &str, use_whitespace: bool, state: LexerState) -> Result<Vec<Token>, (LexerState, Vec<Token>)> {
+    let mut state = state;
     let mut tokens: Vec<Token> = Vec::new();
     let mut brstr: String = String::new();
-    let mut brvct: Vec<u8> = Vec::new();
-    let mut inside_str: u8 = 0;
+    let mut br_state: LexerState = LexerState { line: 0, column: 0 };
+    let mut brtp: Vec<u8> = Vec::new();
     while !code.is_empty() {
         let mut is_match = false;
         let fch = get_first_char(code);
+        let brln = brtp.len();
         match fch.as_str() {
             "\"" => {
                 brstr += "\"";
                 code = code.strip_prefix(fch.as_str()).expect("");
-                if inside_str == 1 {
-                    inside_str = 0;
-                    if brvct.len() == 0 {
-                        tokens.push(Token {
-                            token_type: TokenType::String,
-                            value: brstr.clone(),
-                            column: state.column,
-                            line: state.line
-                        });
-                        brstr = String::new();
-                    }
-                } else if inside_str == 0 {
-                    inside_str = 1;
+                if brln > 0 && brtp[brln-1] == 0 {
+                    brtp.pop();
+                    tokens.push(Token {
+                        token_type: TokenType::String,
+                        value: brstr.clone(),
+                        column: br_state.column,
+                        line: br_state.line
+                    });
+                    brstr = String::new();
+                } else if brln == 0 {
+                    brtp.push(0);
+                    br_state.line = state.line;
+                    br_state.column = state.column;
                 }
             }
             "'" => {
                 brstr += "'";
                 code = code.strip_prefix(fch.as_str()).expect("");
-                if inside_str == 2 {
-                    inside_str = 0;
-                    if brvct.len() == 0 {
+                if brln > 0 && brtp[brln-1] == 1 {
+                    brtp.pop();
+                    tokens.push(Token {
+                        token_type: TokenType::String,
+                        value: brstr.clone(),
+                        column: br_state.column,
+                        line: br_state.line
+                    });
+                    brstr = String::new();
+                } else if brln == 0 {
+                    brtp.push(1);
+                    br_state.line = state.line;
+                    br_state.column = state.column;
+                }
+            }
+            "(" => {
+                code = code.strip_prefix(fch.as_str()).expect("");
+                if brln > 0 {
+                    brstr += fch.as_str();
+                } else {
+                    br_state.line = state.line;
+                    br_state.column = state.column;
+                }
+                brtp.push(2);
+            }
+            ")" => {
+                code = code.strip_prefix(fch.as_str()).expect("");
+                if brln > 0 && brtp[brln-1] == 2 {
+                    brtp.pop();
+                    if brln == 1 {
                         tokens.push(Token {
-                            token_type: TokenType::String,
+                            token_type: TokenType::Round,
                             value: brstr.clone(),
-                            column: state.column,
-                            line: state.line
+                            column: br_state.column,
+                            line: br_state.line
                         });
                         brstr = String::new();
-                    }
-                } else if inside_str == 0 {
-                    inside_str = 2;
+                    } else {brstr += fch.as_str();}
+                } else {brstr += fch.as_str();}
+            }
+            "{" => {
+                code = code.strip_prefix(fch.as_str()).expect("");
+                if brln > 0 {
+                    brstr += fch.as_str();
+                } else {
+                    br_state.line = state.line;
+                    br_state.column = state.column;
                 }
+                brtp.push(3);
+            }
+            "}" => {
+                code = code.strip_prefix(fch.as_str()).expect("");
+                if brln > 0 && brtp[brln-1] == 3 {
+                    brtp.pop();
+                    if brln == 1 {
+                        tokens.push(Token {
+                            token_type: TokenType::Curly,
+                            value: brstr.clone(),
+                            column: br_state.column,
+                            line: br_state.line
+                        });
+                        brstr = String::new();
+                    } else {brstr += fch.as_str();}
+                } else {brstr += fch.as_str();}
+            }
+            "[" => {
+                code = code.strip_prefix(fch.as_str()).expect("");
+                if brln > 0 {
+                    brstr += fch.as_str();
+                } else {
+                    br_state.line = state.line;
+                    br_state.column = state.column;
+                }
+                brtp.push(3);
+            }
+            "]" => {
+                code = code.strip_prefix(fch.as_str()).expect("");
+                if brln > 0 && brtp[brln-1] == 3 {
+                    brtp.pop();
+                    if brln == 1 {
+                        tokens.push(Token {
+                            token_type: TokenType::Round,
+                            value: brstr.clone(),
+                            column: br_state.column,
+                            line: br_state.line
+                        });
+                        brstr = String::new();
+                    } else {brstr += fch.as_str();}
+                } else {brstr += fch.as_str();}
             }
             "\\" => {
                 brstr += "\\";
@@ -170,76 +246,16 @@ pub fn lex(mut code: &str, use_whitespace: bool) -> Result<Vec<Token>, (LexerSta
                     brstr += &sch;
                 }
             }
-            "{" => {
-                code = code.strip_prefix(fch.as_str()).expect("");
-                if brvct.len() > 0 {
-                    brstr += "{";
-                }
-                brvct.push(0);
-            }
-            "}" => {
-                code = code.strip_prefix(fch.as_str()).expect("");
-                brvct.pop();
-                if brvct.len() == 0 {
-                    tokens.push(Token {
-                        token_type: TokenType::Curly,
-                        value: brstr.clone(),
-                        column: state.column,
-                        line: state.line
-                    });
-                } else {
-                    brstr += "}";
-                }
-            }
-            "(" => {
-                code = code.strip_prefix(fch.as_str()).expect("");
-                if brvct.len() > 0 {
-                    brstr += "(";
-                }
-                brvct.push(1);
-            }
-            ")" => {
-                code = code.strip_prefix(fch.as_str()).expect("");
-                brvct.pop();
-                if brvct.len() == 0 {
-                    tokens.push(Token {
-                        token_type: TokenType::Round,
-                        value: brstr.clone(),
-                        column: state.column,
-                        line: state.line
-                    });
-                } else {
-                    brstr += ")";
-                }
-            }
-            "[" => {
-                code = code.strip_prefix(fch.as_str()).expect("");
-                if brvct.len() > 0 {
-                    brstr += "[";
-                }
-                brvct.push(2);
-            }
-            "]" => {
-                code = code.strip_prefix(fch.as_str()).expect("");
-                brvct.pop();
-                if brvct.len() == 0 {
-                    tokens.push(Token {
-                        token_type: TokenType::Square,
-                        value: brstr.clone(),
-                        column: state.column,
-                        line: state.line
-                    });
-                } else {
-                    brstr += "]";
-                }
-            }
             "\n" => {
                 code = code.strip_prefix(fch.as_str()).expect("");
+                if brln > 0 {
+                    brstr += "\n";
+                }
                 state.line += 1;
                 state.column = 0;
             }
             _ => {
-                if inside_str > 0 || brvct.len() > 0 {
+                if brln > 0 {
                     code = code.strip_prefix(fch.as_str()).expect("");
                     brstr += fch.as_str();
                 } else {
