@@ -228,7 +228,7 @@ pub fn lex(mut code: &str, use_whitespace: bool, state: LexerState) -> Result<Ve
                     brtp.pop();
                     if brln == 1 {
                         tokens.push(Token {
-                            token_type: TokenType::Round,
+                            token_type: TokenType::Square,
                             value: brstr.clone(),
                             column: br_state.column,
                             line: br_state.line
