@@ -3,9 +3,11 @@ use crate::parser::{Parser, AstType};
 
 pub fn transpile(input: String, indent: u32, state: LexerState) -> String {
     let mut result = String::new();
-    if indent > 0 {
+    if indent == 0 {
+        result += "type int = i32;\n";
+    } else {
         result += " ".repeat((indent as usize)*2).as_str();
-    }
+    } 
     let lexer_out = lex(input.as_str(), false, state);
     match lexer_out {
         Ok(tokens) => {
