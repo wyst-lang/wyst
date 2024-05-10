@@ -21,4 +21,4 @@ Cargo.lock
 .DS_Store
 
 #Wyst files for testing
-*.wst
+*.wt
