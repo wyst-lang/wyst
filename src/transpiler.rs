@@ -125,6 +125,8 @@ pub fn transpile_round(input: String, state: LexerState) -> String {
                     result += format!("{}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
                 } else if ast.ast_type == AstType::MutVariableDeceleration {
                     result += format!("mut {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
+                } else if ast.ast_type == AstType::PointerDeceleration {
+                    result += format!("{}: &mut {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
                 } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Round {
                     result += format!(
                         "({})",
@@ -135,7 +137,8 @@ pub fn transpile_round(input: String, state: LexerState) -> String {
                     )
                     .as_str();
                 } else {
-                    result += ast.tokens[0].value.as_str()
+                    result += ast.tokens[0].value.as_str();
+                    result += " ";
                 }
             }
             

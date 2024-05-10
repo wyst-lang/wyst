@@ -8,6 +8,7 @@ pub enum AstType {
     FunctionDeceleration,
     VoidFunctionDeceleration,
     VariableDeceleration,
+    PointerDeceleration,
     MutVariableDeceleration,
     Include,
     IncludeLocal,
@@ -94,6 +95,10 @@ impl Parser {
                     } else if self.tokens[index+1].value=="mut" && self.tokens[index+2].token_type==TokenType::Identifier {
                         ast_res.tokens.push(self.tokens[index+2].clone());
                         ast_res.ast_type = AstType::MutVariableDeceleration;
+                        self.index += 2;
+                    } else if self.tokens[index+1].value=="*" && self.tokens[index+2].token_type==TokenType::Identifier {
+                        ast_res.tokens.push(self.tokens[index+2].clone());
+                        ast_res.ast_type = AstType::PointerDeceleration;
                         self.index += 2;
                     }
                 }
