@@ -24,6 +24,7 @@ pub enum TokenType {
     Square,
     Include,
     String,
+    Comment,
     // EOF,
 }
 
@@ -71,7 +72,7 @@ const SYNTAX: [Node; 14] = [
     },
     Node {
         token_type: TokenType::Keyword,
-        token_regex: Lazy::new(|| Regex::new(r"^mut|try|catch|return|fn\b").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^(mut|try|catch|return|fn|let)\b").unwrap())
     },
     Node {
         token_type: TokenType::Identifier,
@@ -87,7 +88,7 @@ const SYNTAX: [Node; 14] = [
     },
     Node {
         token_type: TokenType::Operator,
-        token_regex: Lazy::new(|| Regex::new(r"^[|\-|\+|\*|\=|\!|\&]").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^[|\-|\+|\*|\=|\!|\&|\:]").unwrap())
     },
     Node {
         token_type: TokenType::Round,
@@ -126,6 +127,55 @@ pub fn lex(mut code: &str, use_whitespace: bool, state: LexerState) -> Result<Ve
         let fch = get_first_char(code);
         let brln = brtp.len();
         match fch.as_str() {
+            "/" => {
+                brstr += "/";
+                code = code.strip_prefix(fch.as_str()).expect("");
+                if brln == 0 { 
+                    if code.len() > 0 {
+                        let sch = get_first_char(code);
+                        if sch=="/" {
+                            code = code.strip_prefix(sch.as_str()).expect("");
+                            brstr += &sch;
+                            brtp.push(4);
+                            if brln > 0 {
+                                brstr += fch.as_str();
+                            } else {
+                                br_state.line = state.line;
+                                br_state.column = state.column;
+                            }
+                        } else if sch=="*" {
+                            code = code.strip_prefix(sch.as_str()).expect("");
+                            brstr += &sch;
+                            brtp.push(5);
+                            if brln > 0 {
+                                brstr += fch.as_str();
+                            } else {
+                                br_state.line = state.line;
+                                br_state.column = state.column;
+                            }
+                        }
+                    }
+                }
+            }
+            "*" => {
+                brstr += "*";
+                code = code.strip_prefix(fch.as_str()).expect("");
+                if code.len() > 0 {
+                    let sch = get_first_char(code);
+                    if sch=="/" && brtp[brln-1]==5 {
+                        code = code.strip_prefix(sch.as_str()).expect("");
+                        brstr += &sch;
+                        brtp.pop();
+                        tokens.push(Token {
+                            token_type: TokenType::Comment,
+                            value: brstr.clone(),
+                            column: br_state.column,
+                            line: br_state.line
+                        });
+                        brstr = String::new();
+                    }
+                }
+            }
             "\"" => {
                 brstr += "\"";
                 code = code.strip_prefix(fch.as_str()).expect("");
@@ -250,6 +300,15 @@ pub fn lex(mut code: &str, use_whitespace: bool, state: LexerState) -> Result<Ve
                 code = code.strip_prefix(fch.as_str()).expect("");
                 if brln > 0 {
                     brstr += "\n";
+                } if brln==1 && brtp[0]==4 {
+                    brtp.pop();
+                    tokens.push(Token {
+                        token_type: TokenType::Comment,
+                        value: brstr.clone(),
+                        column: br_state.column,
+                        line: br_state.line
+                    });
+                    brstr = String::new();
                 }
                 state.line += 1;
                 state.column = 0;

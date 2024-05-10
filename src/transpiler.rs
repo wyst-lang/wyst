@@ -70,6 +70,15 @@ pub fn transpile(input: String, indent: u32, state: LexerState) -> String {
                         })
                     )
                     .as_str();
+                } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square {
+                    result += format!(
+                        "[{}]",
+                        transpile_square(ast.tokens[0].value.clone(), LexerState {
+                            line: ast.tokens[0].line,
+                            column: ast.tokens[0].column
+                        })
+                    )
+                    .as_str();
                 } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Curly {
                     if ast.tokens[0].token_type == TokenType::Newline {
                         result += (ast.tokens[0].value.as_str().to_owned()
@@ -78,7 +87,10 @@ pub fn transpile(input: String, indent: u32, state: LexerState) -> String {
                     } else {
                         result += ast.tokens[0].value.as_str();
                     }
-                } else {
+                } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Ptr {
+                    result+=".";
+                } // flp
+                else {
                     if ast.tokens[0].token_type == TokenType::Newline {
                         result += (ast.tokens[0].value.as_str().to_owned()
                             + (" ".repeat((indent as usize) * 2).as_str()))
@@ -88,6 +100,7 @@ pub fn transpile(input: String, indent: u32, state: LexerState) -> String {
                         result += " ".repeat((indent as usize) * 2).as_str();
                     } else {
                         result += ast.tokens[0].value.as_str();
+                        result += " ";
                     }
                 }
             }
@@ -103,8 +116,7 @@ pub fn transpile(input: String, indent: u32, state: LexerState) -> String {
             }
         }
         Err((state, _tokens)) => {
-            println!("Invalid syntax at code.ws:{}:{}", state.line, state.column);
-            return "".to_string();
+            panic!("Invalid syntax at code.ws:{}:{}", state.line, state.column);
         }
     }
 }
@@ -136,7 +148,19 @@ pub fn transpile_round(input: String, state: LexerState) -> String {
                         })
                     )
                     .as_str();
-                } else {
+                } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square {
+                    result += format!(
+                        "[{}]",
+                        transpile_square(ast.tokens[0].value.clone(), LexerState {
+                            line: ast.tokens[0].line,
+                            column: ast.tokens[0].column
+                        })
+                    )
+                    .as_str();
+                } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Ptr {
+                    result+=".";
+                } // flp
+                else {
                     result += ast.tokens[0].value.as_str();
                     result += " ";
                 }
@@ -146,8 +170,61 @@ pub fn transpile_round(input: String, state: LexerState) -> String {
             result
         }
         Err((state, _tokens)) => {
-            println!("Invalid syntax at code.ws:{}:{}", state.line, state.column);
-            return "".to_string();
+            panic!("Invalid syntax at code.ws:{}:{}", state.line, state.column);
+        }
+    }
+}
+
+pub fn transpile_square(input: String, state: LexerState) -> String {
+    let mut result = String::new();
+    let lexer_out = lex(input.as_str(), false, state);
+    
+    match lexer_out {
+        Ok(tokens) => {
+            let mut full_ast = Parser::new(tokens.clone());
+            
+            while full_ast.tokens.len() > full_ast.index as usize {
+                let ast = full_ast.next();
+                println!("{ast}");
+                
+                if ast.ast_type == AstType::VariableDeceleration {
+                    result += format!("{}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
+                } else if ast.ast_type == AstType::MutVariableDeceleration {
+                    result += format!("mut {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
+                } else if ast.ast_type == AstType::PointerDeceleration {
+                    result += format!("{}: &mut {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
+                } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Round {
+                    result += format!(
+                        "({})",
+                        transpile_round(ast.tokens[0].value.clone(), LexerState {
+                            line: ast.tokens[0].line,
+                            column: ast.tokens[0].column
+                        })
+                    )
+                    .as_str();
+                } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square {
+                    result += format!(
+                        "[{}]",
+                        transpile_square(ast.tokens[0].value.clone(), LexerState {
+                            line: ast.tokens[0].line,
+                            column: ast.tokens[0].column
+                        })
+                    )
+                    .as_str();
+                } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Ptr {
+                    result+=".";
+                } // flp
+                else {
+                    result += ast.tokens[0].value.as_str();
+                    result += " ";
+                }
+            }
+            
+            result = result.trim_end().to_string();
+            result
+        }
+        Err((state, _tokens)) => {
+            panic!("Invalid syntax at code.ws:{}:{}", state.line, state.column);
         }
     }
 }
