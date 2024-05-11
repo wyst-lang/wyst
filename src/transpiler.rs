@@ -1,11 +1,11 @@
 use crate::lexer::{lex, LexerState, TokenType};
-use crate::parser::{Parser, AstType};
+use crate::parser::{Ast, AstType, Parser};
 
 pub fn transpile(input: String, indent: u32, state: LexerState) -> String {
     let mut result = String::new();
     
     if indent == 0 {
-        result += "type int = i32;\n";
+        // result += "type int = i32;\n";
     } else {
         result += " ".repeat((indent as usize) * 2).as_str();
     }
@@ -15,7 +15,7 @@ pub fn transpile(input: String, indent: u32, state: LexerState) -> String {
     match lexer_out {
         Ok(tokens) => {
             let mut full_ast = Parser::new(tokens.clone());
-            
+            let mut last_ast = Ast {ast_type: AstType::Other, tokens: vec![]};
             while full_ast.tokens.len() > full_ast.index as usize {
                 let ast = full_ast.next();
                 println!("{ast}");
@@ -58,7 +58,8 @@ pub fn transpile(input: String, indent: u32, state: LexerState) -> String {
                     )
                     .as_str();
                 } else if ast.ast_type == AstType::VariableDeceleration {
-                    result += format!("let {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
+                    result += format!("let mut {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
+                    // result += format!("let {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
                 } else if ast.ast_type == AstType::MutVariableDeceleration {
                     result += format!("let mut {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
                 } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Round {
@@ -99,10 +100,22 @@ pub fn transpile(input: String, indent: u32, state: LexerState) -> String {
                         result += ";\n";
                         result += " ".repeat((indent as usize) * 2).as_str();
                     } else {
+                        if last_ast.tokens.len() > 0 && (
+                            ast.tokens[0].token_type == TokenType::Identifier ||
+                            ast.tokens[0].token_type == TokenType::Keyword ||
+                            ast.tokens[0].token_type == TokenType::Number
+                        ) {
+                            let ltkn = last_ast.tokens[last_ast.tokens.len()-1].token_type;
+                            if ltkn == TokenType::Identifier ||
+                                ltkn == TokenType::Keyword ||
+                                ltkn == TokenType::Number {
+                                result += " ";
+                            }
+                        }
                         result += ast.tokens[0].value.as_str();
-                        result += " ";
                     }
                 }
+                last_ast = ast;
             }
             
             result = result.trim_end().to_string();
@@ -131,8 +144,6 @@ pub fn transpile_round(input: String, state: LexerState) -> String {
             
             while full_ast.tokens.len() > full_ast.index as usize {
                 let ast = full_ast.next();
-                println!("{ast}");
-                
                 if ast.ast_type == AstType::VariableDeceleration {
                     result += format!("{}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
                 } else if ast.ast_type == AstType::MutVariableDeceleration {

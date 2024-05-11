@@ -323,12 +323,25 @@ pub fn lex(mut code: &str, use_whitespace: bool, state: LexerState) -> Result<Ve
                             is_match = true;
                             code = code.strip_prefix(&caps[0]).unwrap_or(code);
                             if (!use_whitespace && s.token_type!=TokenType::Whitespace) || use_whitespace {
-                                tokens.push(Token {
-                                    token_type: s.token_type,
-                                    value: caps[0].to_string(),
-                                    line: state.line,
-                                    column: state.column
-                                });
+                                let cap = caps[0].to_string();
+                                match cap.as_str() {
+                                    "int" => {
+                                        tokens.push(Token {
+                                            token_type: s.token_type,
+                                            value: "i32".to_string(),
+                                            line: state.line,
+                                            column: state.column
+                                        });
+                                    }
+                                    _ => {
+                                        tokens.push(Token {
+                                            token_type: s.token_type,
+                                            value: cap,
+                                            line: state.line,
+                                            column: state.column
+                                        });
+                                    }
+                                }
                             }
                             state.column += caps[0].len();
                         } else {
