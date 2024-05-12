@@ -80,15 +80,24 @@ pub fn transpile(input: String, indent: u32, state: LexerState) -> String {
                         })
                     )
                     .as_str();
+                } else if ast.ast_type == AstType::CodeBlock {
+                    println!("this is fine");
+                    result+="{";
+                    result+=ast.tokens[0].value.as_str();
+                    result+="}";
                 } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Curly {
-                    if ast.tokens[0].token_type == TokenType::Newline {
-                        result += (ast.tokens[0].value.as_str().to_owned()
-                            + (" ".repeat((indent as usize) * 2).as_str()))
-                        .as_str();
-                    } else {
-                        result += ast.tokens[0].value.as_str();
-                    }
-                } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Ptr {
+                    // if ast.tokens[0].token_type == TokenType::Newline {
+                    //     result += (ast.tokens[0].value.as_str().to_owned()
+                    //         + (" ".repeat((indent as usize) * 2).as_str()))
+                    //     .as_str();
+                    // } else {
+                        // result += ast.tokens[0].value.as_str();
+                        result += transpile_json(ast.tokens[0].value.as_str().to_string(), LexerState {
+                            line: ast.tokens[0].line,
+                            column: ast.tokens[0].column
+                        }).as_str();
+                    // }
+                }  else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Ptr {
                     result+=".";
                 } // flp
                 else {
@@ -141,7 +150,6 @@ pub fn transpile_round(input: String, state: LexerState) -> String {
     match lexer_out {
         Ok(tokens) => {
             let mut full_ast = Parser::new(tokens.clone());
-            
             while full_ast.tokens.len() > full_ast.index as usize {
                 let ast = full_ast.next();
                 if ast.ast_type == AstType::VariableDeceleration {
@@ -170,6 +178,11 @@ pub fn transpile_round(input: String, state: LexerState) -> String {
                     .as_str();
                 } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Ptr {
                     result+=".";
+                } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Curly {
+                    result += transpile_json(ast.tokens[0].value.as_str().to_string(), LexerState {
+                        line: ast.tokens[0].line,
+                        column: ast.tokens[0].column
+                    }).as_str();
                 } // flp
                 else {
                     result += ast.tokens[0].value.as_str();
@@ -224,6 +237,11 @@ pub fn transpile_square(input: String, state: LexerState) -> String {
                     .as_str();
                 } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Ptr {
                     result+=".";
+                } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Curly {
+                    result += transpile_json(ast.tokens[0].value.as_str().to_string(), LexerState {
+                        line: ast.tokens[0].line,
+                        column: ast.tokens[0].column
+                    }).as_str();
                 } // flp
                 else {
                     result += ast.tokens[0].value.as_str();
@@ -231,6 +249,62 @@ pub fn transpile_square(input: String, state: LexerState) -> String {
                 }
             }
             
+            result = result.trim_end().to_string();
+            result
+        }
+        Err((state, _tokens)) => {
+            panic!("Invalid syntax at code.ws:{}:{}", state.line, state.column);
+        }
+    }
+}
+
+pub fn transpile_json(input: String, state: LexerState) -> String {
+    let mut result = String::new();
+    let lexer_out = lex(input.as_str(), false, state);
+    
+    match lexer_out {
+        Ok(tokens) => {
+            let mut full_ast = Parser::new(tokens.clone());
+            full_ast.json = true;
+            result += "HashMap::from([";
+            while full_ast.tokens.len() > full_ast.index as usize {
+                let ast = full_ast.next();
+                println!("{ast}");
+                if ast.ast_type == AstType::Json {
+                    result += "(";
+                    result += ast.tokens[0].value.as_str();
+                    result += ",";
+                    result += ast.tokens[1].value.as_str();
+                    result += ")";
+                } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Round {
+                    result += format!(
+                        "({})",
+                        transpile_round(ast.tokens[0].value.clone(), LexerState {
+                            line: ast.tokens[0].line,
+                            column: ast.tokens[0].column
+                        })
+                    )
+                    .as_str();
+                } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square {
+                    result += format!(
+                        "[{}]",
+                        transpile_square(ast.tokens[0].value.clone(), LexerState {
+                            line: ast.tokens[0].line,
+                            column: ast.tokens[0].column
+                        })
+                    )
+                    .as_str();
+                } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Curly {
+                    result += transpile_json(ast.tokens[0].value.as_str().to_string(), LexerState {
+                        line: ast.tokens[0].line,
+                        column: ast.tokens[0].column
+                    }).as_str();
+                } else {
+                    result += ast.tokens[0].value.as_str();
+                    result += " ";
+                }
+            }
+            result += "])";
             result = result.trim_end().to_string();
             result
         }

@@ -72,7 +72,7 @@ const SYNTAX: [Node; 14] = [
     },
     Node {
         token_type: TokenType::Keyword,
-        token_regex: Lazy::new(|| Regex::new(r"^(mut|try|catch|return|fn|let|use)\b").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^(mut|try|catch|return|fn|let|use|cb)\b").unwrap())
     },
     Node {
         token_type: TokenType::Identifier,
@@ -80,7 +80,7 @@ const SYNTAX: [Node; 14] = [
     },
     Node {
         token_type: TokenType::Number,
-        token_regex: Lazy::new(|| Regex::new(r"^(:?.)?(:?0[x|X])?\d+(:?.\d+)?\b").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^\d+").unwrap())
     },
     Node {
         token_type: TokenType::Ptr,
@@ -153,7 +153,21 @@ pub fn lex(mut code: &str, use_whitespace: bool, state: LexerState) -> Result<Ve
                                 br_state.line = state.line;
                                 br_state.column = state.column;
                             }
+                        } else if brln == 0 {
+                            tokens.push(Token {
+                                token_type: TokenType::Operator,
+                                value: "/".to_string(),
+                                column: state.column,
+                                line: state.line
+                            });
                         }
+                    } else if brln == 0 {
+                        tokens.push(Token {
+                            token_type: TokenType::Operator,
+                            value: "*".to_string(),
+                            column: state.column,
+                            line: state.line
+                        });
                     }
                 }
             }
@@ -173,7 +187,21 @@ pub fn lex(mut code: &str, use_whitespace: bool, state: LexerState) -> Result<Ve
                             line: br_state.line
                         });
                         brstr = String::new();
+                    } else if brln == 0 {
+                        tokens.push(Token {
+                            token_type: TokenType::Operator,
+                            value: "*".to_string(),
+                            column: state.column,
+                            line: state.line
+                        });
                     }
+                } else if brln == 0 {
+                    tokens.push(Token {
+                        token_type: TokenType::Operator,
+                        value: "*".to_string(),
+                        column: state.column,
+                        line: state.line
+                    });
                 }
             }
             "\"" => {
