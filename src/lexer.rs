@@ -1,7 +1,6 @@
 use regex::Regex;
 use once_cell::sync::Lazy;
 use std::fmt;
-
 pub struct LexerState {
     pub line: usize,
     pub column: usize
@@ -22,6 +21,7 @@ pub enum TokenType {
     Round,
     Curly,
     Square,
+    Angle,
     Include,
     String,
     Comment,
@@ -72,11 +72,11 @@ const SYNTAX: [Node; 14] = [
     },
     Node {
         token_type: TokenType::Keyword,
-        token_regex: Lazy::new(|| Regex::new(r"^(mut|try|catch|return|fn|let)\b").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^(mut|try|catch|return|fn|let|use)\b").unwrap())
     },
     Node {
         token_type: TokenType::Identifier,
-        token_regex: Lazy::new(|| Regex::new(r"^[._a-zA-Z][a-zA-Z0-9_]*(:?\s*<[._a-zA-Z][a-zA-Z0-9_<>]*>)?").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^[._a-zA-Z][a-zA-Z0-9_]*").unwrap())
     },
     Node {
         token_type: TokenType::Number,
@@ -279,6 +279,31 @@ pub fn lex(mut code: &str, use_whitespace: bool, state: LexerState) -> Result<Ve
                     if brln == 1 {
                         tokens.push(Token {
                             token_type: TokenType::Square,
+                            value: brstr.clone(),
+                            column: br_state.column,
+                            line: br_state.line
+                        });
+                        brstr = String::new();
+                    } else {brstr += fch.as_str();}
+                } else {brstr += fch.as_str();}
+            }
+            "<" => {
+                code = code.strip_prefix(fch.as_str()).expect("");
+                if brln > 0 {
+                    brstr += fch.as_str();
+                } else {
+                    br_state.line = state.line;
+                    br_state.column = state.column;
+                }
+                brtp.push(6);
+            }
+            ">" => {
+                code = code.strip_prefix(fch.as_str()).expect("");
+                if brln > 0 && brtp[brln-1] == 6 {
+                    brtp.pop();
+                    if brln == 1 {
+                        tokens.push(Token {
+                            token_type: TokenType::Angle,
                             value: brstr.clone(),
                             column: br_state.column,
                             line: br_state.line

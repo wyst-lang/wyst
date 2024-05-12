@@ -92,6 +92,13 @@ impl Parser {
                         ast_res.tokens.push(self.tokens[index+1].clone());
                         ast_res.ast_type = AstType::VariableDeceleration;
                         self.index += 1;
+                    } else if self.tokens[index+2].token_type==TokenType::Identifier && self.tokens[index+1].token_type==TokenType::Angle {
+                        ast_res.tokens.push(self.tokens[index+2].clone());
+                        ast_res.tokens[0].value += "<";
+                        ast_res.tokens[0].value += self.tokens[index+1].value.as_str();
+                        ast_res.tokens[0].value += ">";
+                        ast_res.ast_type = AstType::VariableDeceleration;
+                        self.index += 2;
                     } else if self.tokens[index+1].value=="mut" && self.tokens[index+2].token_type==TokenType::Identifier {
                         ast_res.tokens.push(self.tokens[index+2].clone());
                         ast_res.ast_type = AstType::MutVariableDeceleration;
