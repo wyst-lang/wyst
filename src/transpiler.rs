@@ -81,7 +81,6 @@ pub fn transpile(input: String, indent: u32, state: LexerState) -> String {
                     )
                     .as_str();
                 } else if ast.ast_type == AstType::CodeBlock {
-                    println!("this is fine");
                     result+="{";
                     result+=ast.tokens[0].value.as_str();
                     result+="}";
