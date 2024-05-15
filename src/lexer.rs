@@ -72,7 +72,7 @@ const SYNTAX: [Node; 14] = [
     },
     Node {
         token_type: TokenType::Keyword,
-        token_regex: Lazy::new(|| Regex::new(r"^(mut|try|catch|return|fn|let|use|cb)\b").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^(mut|try|catch|return|fn|let|use|cb|struct|impl|for|in)\b").unwrap())
     },
     Node {
         token_type: TokenType::Identifier,

@@ -1,7 +1,18 @@
 use crate::lexer::{lex, LexerState, TokenType};
 use crate::parser::{Ast, AstType, Parser};
 
-pub fn transpile(input: String, indent: u32, state: LexerState) -> String {
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct Options {
+    auto_mut: bool
+}
+
+impl Default for Options {
+    fn default() -> Options {
+        Options { auto_mut: true }
+    }
+}
+
+pub fn transpile(input: String, indent: u32, state: LexerState, options: Options) -> String {
     let mut result = String::new();
     
     if indent == 0 {
@@ -35,7 +46,8 @@ pub fn transpile(input: String, indent: u32, state: LexerState) -> String {
                             LexerState {
                                 line: ast.tokens[3].line,
                                 column: ast.tokens[3].column
-                            }
+                            },
+                            options
                         )
                     )
                     .as_str();
@@ -53,13 +65,32 @@ pub fn transpile(input: String, indent: u32, state: LexerState) -> String {
                             LexerState {
                                 line: ast.tokens[3].line,
                                 column: ast.tokens[3].column
-                            }
+                            },
+                            options.clone()
                         )
                     )
                     .as_str();
+                } else if ast.ast_type == AstType::StructDeceleration {
+                    result += format!(
+                        "struct {} {} {}",
+                        ast.tokens[0].value,
+                        "{\n",
+                        transpile_round(
+                            ast.tokens[1].value.clone(),
+                            LexerState {
+                                line: ast.tokens[1].line,
+                                column: ast.tokens[1].column
+                            }
+                        ).trim_end()
+                    ).replace("\n", ("\n".to_string() + " ".repeat(((indent+1) as usize)*2).as_str()).as_str())
+                    .as_str();
+                    result += "\n}\n";
                 } else if ast.ast_type == AstType::VariableDeceleration {
-                    result += format!("let mut {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
-                    // result += format!("let {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
+                    if options.auto_mut {
+                        result += format!("let mut {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
+                    } else {
+                        result += format!("let {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
+                    }
                 } else if ast.ast_type == AstType::MutVariableDeceleration {
                     result += format!("let mut {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
                 } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Round {

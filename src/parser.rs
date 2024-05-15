@@ -6,6 +6,7 @@ use once_cell::sync::Lazy;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AstType {
     FunctionDeceleration,
+    StructDeceleration,
     VoidFunctionDeceleration,
     VariableDeceleration,
     PointerDeceleration,
@@ -77,6 +78,11 @@ impl Parser {
             ast_res.ast_type = AstType::Json;
             ast_res.tokens.push(self.tokens[index].clone());
             ast_res.tokens.push(self.tokens[index+2].clone());
+            self.index += 2;
+        } else if self.tokens.len()-index > 2 && self.tokens[index].value == "struct" && self.tokens[index+1].token_type==TokenType::Identifier && self.tokens[index+2].token_type==TokenType::Curly {
+            ast_res.tokens.push(self.tokens[index+1].clone());
+            ast_res.tokens.push(self.tokens[index+2].clone());
+            ast_res.ast_type = AstType::StructDeceleration;
             self.index += 2;
         } else {
             match token.token_type {
