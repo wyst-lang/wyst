@@ -1,14 +1,16 @@
 use crate::lexer::{lex, LexerState, TokenType};
 use crate::parser::{Ast, AstType, Parser};
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Options {
-    auto_mut: bool
+    auto_mut: bool,
+    auto_macro: bool,
+    macros: Vec<String>
 }
 
 impl Default for Options {
     fn default() -> Options {
-        Options { auto_mut: true }
+        Options { auto_mut: true, auto_macro: true, macros: vec![String::from("println")] }
     }
 }
 
@@ -47,7 +49,7 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: Options
                                 line: ast.tokens[3].line,
                                 column: ast.tokens[3].column
                             },
-                            options
+                            options.clone()
                         )
                     )
                     .as_str();
@@ -127,8 +129,15 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: Options
                             column: ast.tokens[0].column
                         }).as_str();
                     // }
-                }  else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Ptr {
+                } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Ptr {
                     result+=".";
+                } else if ast.ast_type == AstType::StructCall {
+                    result += ast.tokens[0].value.as_str();
+                    result += " {";
+                    result += ast.tokens[1].value.as_str();
+                    result += "}";
+                } else if ast.ast_type == AstType::StructVar {
+                    result += format!("let mut {}: {} = {} {}{}{}", ast.tokens[1].value.as_str(), ast.tokens[0].value.as_str(), ast.tokens[0].value.as_str(), "{", ast.tokens[2].value.as_str(), "}").as_str();
                 } // flp
                 else {
                     if ast.tokens[0].token_type == TokenType::Newline {
@@ -152,6 +161,9 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: Options
                             }
                         }
                         result += ast.tokens[0].value.as_str();
+                        if options.auto_macro && options.macros.contains(&ast.tokens[0].value.as_str().to_string()) {
+                            result += "!";
+                        }
                     }
                 }
                 last_ast = ast;
@@ -213,6 +225,11 @@ pub fn transpile_round(input: String, state: LexerState) -> String {
                         line: ast.tokens[0].line,
                         column: ast.tokens[0].column
                     }).as_str();
+                } else if ast.ast_type == AstType::StructCall {
+                    result += ast.tokens[0].value.as_str();
+                    result += " {";
+                    result += ast.tokens[1].value.as_str();
+                    result += "}";
                 } // flp
                 else {
                     result += ast.tokens[0].value.as_str();
@@ -272,6 +289,11 @@ pub fn transpile_square(input: String, state: LexerState) -> String {
                         line: ast.tokens[0].line,
                         column: ast.tokens[0].column
                     }).as_str();
+                } else if ast.ast_type == AstType::StructCall {
+                    result += ast.tokens[0].value.as_str();
+                    result += " {";
+                    result += ast.tokens[1].value.as_str();
+                    result += "}";
                 } // flp
                 else {
                     result += ast.tokens[0].value.as_str();
