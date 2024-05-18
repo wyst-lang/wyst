@@ -32,7 +32,19 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: Options
             while full_ast.tokens.len() > full_ast.index as usize {
                 let ast = full_ast.next();
                 println!("{ast}");
-                
+                if last_ast.tokens.len() > 0 {
+                    let mut fl = 0;
+                    for t in &last_ast.tokens { fl+=t.value.len() }
+                    // if ast.tokens[ast.tokens.len()-1].line > last_ast.tokens[last_ast.tokens.len()-1].line {
+                    //     // result += ("\n".to_string() + " ".repeat(((indent+1) as usize)*2).as_str()).repeat(ast.tokens[ast.tokens.len()-1].line - last_ast.tokens[last_ast.tokens.len()-1].line).as_str();
+                    //     result += "\n".repeat(ast.tokens[ast.tokens.len()-1].line - last_ast.tokens[last_ast.tokens.len()-1].line).as_str();
+                    // }
+                    if ast.tokens[ast.tokens.len()-1].column > last_ast.tokens[last_ast.tokens.len()-1].column+fl {
+                        result += " ".repeat(ast.tokens[ast.tokens.len()-1].column - (last_ast.tokens[last_ast.tokens.len()-1].column+fl)).as_str();
+                    }
+                }
+                last_ast = Ast {ast_type: ast.ast_type.clone(), tokens: ast.tokens.clone()};
+
                 if ast.ast_type == AstType::FunctionDeceleration {
                     result += format!(
                         "fn {}({}) -> {} {}",
@@ -95,7 +107,7 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: Options
                     }
                 } else if ast.ast_type == AstType::MutVariableDeceleration {
                     result += format!("let mut {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
-                } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Round {
+                } else if ast.ast_type == AstType::Other && ast.tokens[0].token_type == TokenType::Round {
                     result += format!(
                         "({})",
                         transpile_round(ast.tokens[0].value.clone(), LexerState {
@@ -148,25 +160,23 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: Options
                         result += ";\n";
                         result += " ".repeat((indent as usize) * 2).as_str();
                     } else {
-                        if last_ast.tokens.len() > 0 && (
-                            ast.tokens[0].token_type == TokenType::Identifier ||
-                            ast.tokens[0].token_type == TokenType::Keyword ||
-                            ast.tokens[0].token_type == TokenType::Number
-                        ) {
-                            let ltkn = last_ast.tokens[last_ast.tokens.len()-1].token_type;
-                            if ltkn == TokenType::Identifier ||
-                                ltkn == TokenType::Keyword ||
-                                ltkn == TokenType::Number {
-                                result += " ";
-                            }
-                        }
+                            // if last_ast.tokens.len() > 0 && (
+                            // last_ast.tokens[last_ast.tokens.len()-1].token_type == TokenType::Identifier ||
+                            // last_ast.tokens[last_ast.tokens.len()-1].token_type == TokenType::Keyword ||
+                            // last_ast.tokens[last_ast.tokens.len()-1].token_type == TokenType::Number
+                        // ) {
+                            // let ltkn = last_ast.tokens[last_ast.tokens.len()-1].token_type;
+                            // if ltkn == TokenType::Identifier ||
+                                // ltkn == TokenType::Keyword ||
+                                // ltkn == TokenType::Number {
+                            // }
+                        // }
                         result += ast.tokens[0].value.as_str();
                         if options.auto_macro && options.macros.contains(&ast.tokens[0].value.as_str().to_string()) {
                             result += "!";
                         }
                     }
                 }
-                last_ast = ast;
             }
             
             result = result.trim_end().to_string();

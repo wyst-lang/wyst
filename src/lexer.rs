@@ -72,7 +72,7 @@ const SYNTAX: [Node; 14] = [
     },
     Node {
         token_type: TokenType::Keyword,
-        token_regex: Lazy::new(|| Regex::new(r"^(mut|try|catch|return|fn|let|use|cb|struct|impl|for|in)\b").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^(mut|try|catch|return|fn|let|use|cb|struct|impl|for|in|as)\b").unwrap())
     },
     Node {
         token_type: TokenType::Identifier,
@@ -382,6 +382,14 @@ pub fn lex(mut code: &str, use_whitespace: bool, state: LexerState) -> Result<Ve
                                         tokens.push(Token {
                                             token_type: s.token_type,
                                             value: "i32".to_string(),
+                                            line: state.line,
+                                            column: state.column
+                                        });
+                                    }
+                                    "float" => {
+                                        tokens.push(Token {
+                                            token_type: s.token_type,
+                                            value: "f32".to_string(),
                                             line: state.line,
                                             column: state.column
                                         });
