@@ -26,6 +26,7 @@ fn clean_incl(input: &str) -> String {
 pub fn transpile_mod(ast: Ast, options: &mut Options, s: &str) -> String {
     let modfile = ast.tokens[0].value.as_str();
     let modname = format!("{}_{}", clean_incl(modfile.split(".").collect::<Vec<_>>()[0]), options.clone().modnum);
+    println!("{}", s.to_string()+modfile);
     let file_content = fs::read_to_string(s.to_string()+modfile)
         .expect("Error reading file");
     let transpiled_code = transpile(file_content, 0, LexerState { line: 1, column: 0 }, &mut Options::default());
@@ -172,7 +173,7 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: &mut Op
                 } else if ast.ast_type == AstType::StructVar {
                     result += format!("let mut {}: {} = {} {}{}{}", ast.tokens[1].value.as_str(), ast.tokens[0].value.as_str(), ast.tokens[0].value.as_str(), "{", ast.tokens[2].value.as_str(), "}").as_str();
                 } else if ast.ast_type == AstType::Include {
-                    let modname = transpile_mod(ast, options, "/lib");
+                    let modname = transpile_mod(ast, options, "lib/");
                     result += "mod ";
                     result += modname.as_str();
                     result += ";\n";

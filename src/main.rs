@@ -2,7 +2,7 @@ mod transpiler;
 mod parser;
 mod lexer;
 mod compile; 
-use std::fs;
+use std::{fs, path::Path};
 use clap::Parser;
 use lexer::LexerState;
 use transpiler::Options;
@@ -24,7 +24,9 @@ fn main() {
     let args = Args::parse();
     let file_content = fs::read_to_string(&args.file)
         .expect("Error reading file");
-
+    if Path::new("wyst_tmp").exists() {
+        fs::remove_dir_all("wyst_tmp").expect("err rm wyst_tmp");
+    }
     fs::create_dir("wyst_tmp").expect("error making wyst_tmp");
     let transpiled_code = transpiler::transpile(file_content, 0, LexerState { line: 1, column: 0 }, &mut Options::default());
 
