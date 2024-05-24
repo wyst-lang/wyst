@@ -2,7 +2,7 @@ mod transpiler;
 mod parser;
 mod lexer;
 mod compile; 
-use std::fs;
+use std::{env::set_current_dir, fs};
 use clap::Parser;
 use lexer::LexerState;
 use transpiler::Options;
@@ -25,7 +25,8 @@ fn main() {
     let file_content = fs::read_to_string(&args.file)
         .expect("Error reading file");
 
-    let transpiled_code = transpiler::transpile(file_content, 0, LexerState { line: 1, column: 0 }, Options::default());
+    fs::create_dir("wyst_tmp").expect("error making wyst_tmp");
+    let transpiled_code = transpiler::transpile(file_content, 0, LexerState { line: 1, column: 0 }, &mut Options::default());
 
     match args.rust {
         Some(ref rust_file_name) => {
@@ -43,13 +44,11 @@ fn main() {
     match args.compile {
         Some(ref exe_name) => {
             // Compile transpiled Rust code into executable
-            compile::write_to_rust_file(&transpiled_code, "temp.rs")
+            compile::write_to_rust_file(&transpiled_code, "wyst_tmp/temp.rs")
                 .expect("Error writing to temporary Rust file");
-            compile::compile_to_executable("temp.rs", exe_name)
+            compile::compile_to_executable("wyst_tmp/temp.rs", exe_name)
                 .expect("Error compiling to executable");
-            fs::remove_file("temp.rs")
-                .expect("Error removing temporary Rust file");
-            println!("Compiled executable: {}", exe_name);
+            fs::remove_dir_all("wyst_tmp").expect("err rm wyst_tmp");
         }
         None => {}
     }

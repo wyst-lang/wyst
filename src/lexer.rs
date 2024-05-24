@@ -1,6 +1,7 @@
 use regex::Regex;
 use once_cell::sync::Lazy;
 use std::fmt;
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct LexerState {
     pub line: usize,
     pub column: usize
@@ -72,7 +73,7 @@ const SYNTAX: [Node; 14] = [
     },
     Node {
         token_type: TokenType::Keyword,
-        token_regex: Lazy::new(|| Regex::new(r"^(mut|try|catch|return|fn|let|use|cb|struct|impl|for|in|as)\b").unwrap())
+        token_regex: Lazy::new(|| Regex::new(r"^(pub|mut|try|catch|return|fn|let|use|cb|struct|impl|for|in|as)\b").unwrap())
     },
     Node {
         token_type: TokenType::Identifier,

@@ -1,3 +1,4 @@
+use std::fs;
 use crate::lexer::{lex, LexerState, TokenType};
 use crate::parser::{Ast, AstType, Parser};
 
@@ -5,16 +6,36 @@ use crate::parser::{Ast, AstType, Parser};
 pub struct Options {
     auto_mut: bool,
     auto_macro: bool,
-    macros: Vec<String>
+    macros: Vec<String>,
+    modnum: u32
 }
 
 impl Default for Options {
     fn default() -> Options {
-        Options { auto_mut: true, auto_macro: true, macros: vec![String::from("println")] }
+        Options { auto_mut: true, auto_macro: true, macros: vec![String::from("println")], modnum: 0 }
     }
 }
 
-pub fn transpile(input: String, indent: u32, state: LexerState, options: Options) -> String {
+fn clean_incl(input: &str) -> String {
+    input
+        .chars()
+        .map(|c| if c.is_alphanumeric() || c == '_' { c } else { '_' })
+        .collect()
+}
+
+pub fn transpile_mod(ast: Ast, options: &mut Options) -> String {
+    let modfile = ast.tokens[0].value.as_str();
+    let modname = format!("{}_{}", clean_incl(modfile.split(".").collect::<Vec<_>>()[0]), options.clone().modnum);
+    let file_content = fs::read_to_string("lib/".to_string()+modfile)
+        .expect("Error reading file");
+    let transpiled_code = transpile(file_content, 0, LexerState { line: 1, column: 0 }, &mut Options::default());
+    fs::write(("wyst_tmp/".to_string()+modname.as_str())+".rs",
+        transpiled_code)
+        .expect("Error writing file");
+    modname
+}
+
+pub fn transpile(input: String, indent: u32, state: LexerState, options: &mut Options) -> String {
     let mut result = String::new();
     
     if indent == 0 {
@@ -61,7 +82,7 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: Options
                                 line: ast.tokens[3].line,
                                 column: ast.tokens[3].column
                             },
-                            options.clone()
+                            &mut options.clone()
                         )
                     )
                     .as_str();
@@ -80,7 +101,7 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: Options
                                 line: ast.tokens[3].line,
                                 column: ast.tokens[3].column
                             },
-                            options.clone()
+                            &mut options.clone()
                         )
                     )
                     .as_str();
@@ -100,7 +121,7 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: Options
                     .as_str();
                     result += "\n}\n";
                 } else if ast.ast_type == AstType::VariableDeceleration {
-                    if options.auto_mut {
+                    if options.clone().auto_mut {
                         result += format!("let mut {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
                     } else {
                         result += format!("let {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
@@ -150,6 +171,15 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: Options
                     result += "}";
                 } else if ast.ast_type == AstType::StructVar {
                     result += format!("let mut {}: {} = {} {}{}{}", ast.tokens[1].value.as_str(), ast.tokens[0].value.as_str(), ast.tokens[0].value.as_str(), "{", ast.tokens[2].value.as_str(), "}").as_str();
+                } else if ast.ast_type == AstType::Include {
+                    let modname = transpile_mod(ast, options);
+                    result += "mod ";
+                    result += modname.as_str();
+                    result += ";\n";
+                    result += "use ";
+                    result += modname.as_str();
+                    result += "::*;\n";
+                    options.modnum += 1;
                 } // flp
                 else {
                     if ast.tokens[0].token_type == TokenType::Newline {

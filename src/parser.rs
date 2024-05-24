@@ -1,4 +1,4 @@
-use  crate::lexer::{Token, TokenType};
+use crate::lexer::{Token, TokenType};
 use std::fmt;
 use regex::Regex;
 use once_cell::sync::Lazy;
