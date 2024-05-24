@@ -2,7 +2,7 @@ mod transpiler;
 mod parser;
 mod lexer;
 mod compile; 
-use std::{env::set_current_dir, fs};
+use std::fs;
 use clap::Parser;
 use lexer::LexerState;
 use transpiler::Options;
