@@ -307,23 +307,19 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: &mut Op
                     )
                     .as_str();
                 } else if ast.ast_type == AstType::Namespace {
-                    let l_opt = options.auto_pub;
-                    options.auto_pub = true;
-                    let transpiled_code = transpile(
-                        ast.tokens[1].value.clone(),
-                        0,
-                        LexerState { line: 1, column: 0 },
-                        options,
-                    );
-                    options.auto_pub = l_opt;
-                    fs::write(
-                        ("wyst_tmp/".to_string() + &ast.tokens[0].value.clone()) + ".rs",
-                        transpiled_code,
+                    result += format!(
+                        "mod {} {}{}{}",
+                        &ast.tokens[0].value.clone(),
+                        "{",
+                        transpile(
+                            ast.tokens[1].value.clone(),
+                            0,
+                            LexerState { line: 1, column: 0 },
+                            options,
+                        ),
+                        "}"
                     )
-                    .expect("Error writing file");
-                    result += "mod ";
-                    result += &ast.tokens[0].value.clone();
-                    result += ";\n";
+                    .as_str();
                 }
                 // flp
                 else {
