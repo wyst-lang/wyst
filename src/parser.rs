@@ -10,6 +10,7 @@ pub enum AstType {
     StructCall,
     StructVar,
     VoidFunctionDeceleration,
+    Namespace,
     VariableDeceleration,
     PointerDeceleration,
     MutVariableDeceleration,
@@ -99,6 +100,15 @@ impl Parser {
             ast_res.tokens.push(self.tokens[index + 1].clone());
             ast_res.tokens.push(self.tokens[index + 2].clone());
             ast_res.ast_type = AstType::StructDeceleration;
+            self.index += 2;
+        } else if self.tokens.len() - index > 2
+            && self.tokens[index].value == "namespace"
+            && self.tokens[index + 1].token_type == TokenType::Identifier
+            && self.tokens[index + 2].token_type == TokenType::Curly
+        {
+            ast_res.tokens.push(self.tokens[index + 1].clone());
+            ast_res.tokens.push(self.tokens[index + 2].clone());
+            ast_res.ast_type = AstType::Namespace;
             self.index += 2;
         } else if self.tokens.len() - index > 2
             && self.tokens[index].token_type == TokenType::Keyword1

@@ -88,7 +88,7 @@ const SYNTAX: [Node; 16] = [
     },
     Node {
         token_type: TokenType::Keyword1,
-        token_regex: Lazy::new(|| Regex::new(r"^(if|for|while|else *if)\b").unwrap()),
+        token_regex: Lazy::new(|| Regex::new(r"^(namespace|if|for|while|else *if)\b").unwrap()),
     },
     Node {
         token_type: TokenType::Keyword2,

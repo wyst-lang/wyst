@@ -41,7 +41,6 @@ pub fn transpile_mod(ast: Ast, options: &mut Options, s: &str) -> String {
         clean_incl(modfile.split(".").collect::<Vec<_>>()[0]),
         options.clone().modnum
     );
-    println!("{}", s.to_string() + modfile);
     let file_content = fs::read_to_string(s.to_string() + modfile).expect("Error reading file");
     let transpiled_code = transpile(
         file_content,
@@ -296,6 +295,21 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: &mut Op
                         ),
                     )
                     .as_str();
+                } else if ast.ast_type == AstType::Namespace {
+                    let transpiled_code = transpile(
+                        ast.tokens[1].value.clone(),
+                        0,
+                        LexerState { line: 1, column: 0 },
+                        &mut Options::default(),
+                    );
+                    fs::write(
+                        ("wyst_tmp/".to_string() + &ast.tokens[0].value.clone()) + ".rs",
+                        transpiled_code,
+                    )
+                    .expect("Error writing file");
+                    result += "mod ";
+                    result += &ast.tokens[0].value.clone();
+                    result += ";\n";
                 }
                 // flp
                 else {
