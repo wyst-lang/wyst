@@ -6,6 +6,7 @@ use std::fs;
 pub struct Options {
     auto_mut: bool,
     auto_macro: bool,
+    auto_pub: bool,
     macros: Vec<String>,
     modnum: u32,
 }
@@ -15,6 +16,7 @@ impl Default for Options {
         Options {
             auto_mut: true,
             auto_macro: true,
+            auto_pub: false,
             macros: vec![String::from("println")],
             modnum: 0,
         }
@@ -99,6 +101,9 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: &mut Op
                 };
 
                 if ast.ast_type == AstType::FunctionDeceleration {
+                    if options.auto_pub {
+                        result += "pub ";
+                    }
                     result += format!(
                         "fn {}({}) -> {} {}",
                         ast.tokens[1].value,
@@ -122,6 +127,9 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: &mut Op
                     )
                     .as_str();
                 } else if ast.ast_type == AstType::VoidFunctionDeceleration {
+                    if options.auto_pub {
+                        result += "pub ";
+                    }
                     result += format!(
                         "fn {}({}) {}",
                         ast.tokens[1].value,
@@ -144,6 +152,9 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: &mut Op
                     )
                     .as_str();
                 } else if ast.ast_type == AstType::StructDeceleration {
+                    if options.auto_pub {
+                        result += "pub ";
+                    }
                     result += format!(
                         "struct {} {} {}",
                         ast.tokens[0].value,
@@ -296,12 +307,15 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: &mut Op
                     )
                     .as_str();
                 } else if ast.ast_type == AstType::Namespace {
+                    let l_opt = options.auto_pub;
+                    options.auto_pub = true;
                     let transpiled_code = transpile(
                         ast.tokens[1].value.clone(),
                         0,
                         LexerState { line: 1, column: 0 },
-                        &mut Options::default(),
+                        options,
                     );
+                    options.auto_pub = l_opt;
                     fs::write(
                         ("wyst_tmp/".to_string() + &ast.tokens[0].value.clone()) + ".rs",
                         transpiled_code,
