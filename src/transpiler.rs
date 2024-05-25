@@ -51,7 +51,7 @@ pub fn transpile_mod(ast: Ast, options: &mut Options, s: &str) -> String {
         &mut Options::default(),
     );
     fs::write(
-        ("wyst_tmp/".to_string() + modname.as_str()) + ".rs",
+        ("build/".to_string() + modname.as_str()) + ".rs",
         transpiled_code,
     )
     .expect("Error writing file");
@@ -78,7 +78,6 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: &mut Op
             };
             while full_ast.tokens.len() > full_ast.index as usize {
                 let ast = full_ast.next();
-                println!("{ast}");
                 if last_ast.tokens.len() > 0 {
                     let mut fl = 0;
                     for t in &last_ast.tokens {
@@ -334,6 +333,14 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: &mut Op
                         "}"
                     )
                     .as_str();
+                } else if ast.ast_type == AstType::PointerDeceleration {
+                    if options.auto_mut {
+                        result +=
+                            format!("let mut {}: &mut {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
+                    } else {
+                        result +=
+                           format!("let {}: &mut {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
+                    }
                 }
                 // flp
                 else {
@@ -465,6 +472,9 @@ pub fn transpile_round(input: String, state: LexerState) -> String {
                     result += " {";
                     result += ast.tokens[1].value.as_str();
                     result += "}";
+                } else if ast.ast_type == AstType::Ref {
+                    result += "&mut ";
+                    result += ast.tokens[0].value.as_str();
                 }
                 // flp
                 else {
@@ -520,9 +530,6 @@ pub fn transpile_square(input: String, state: LexerState) -> String {
                 } else if ast.ast_type == AstType::MutVariableDeceleration {
                     result +=
                         format!("mut {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
-                } else if ast.ast_type == AstType::PointerDeceleration {
-                    result +=
-                        format!("{}: &mut {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
                 } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Round {
                     result += format!(
                         "({})",

@@ -108,7 +108,7 @@ const SYNTAX: [Node; 16] = [
     },
     Node {
         token_type: TokenType::Operator,
-        token_regex: Lazy::new(|| Regex::new(r"^[|\-|\+|\*|\=|\!|\&|\:]").unwrap()),
+        token_regex: Lazy::new(|| Regex::new(r"^[\&\&|\-|\+|\*|\=|\!|\&|\:]").unwrap()),
     },
     Node {
         token_type: TokenType::Round,
@@ -193,39 +193,6 @@ pub fn lex(
                             line: state.line,
                         });
                     }
-                }
-            }
-            "*" => {
-                brstr += "*";
-                code = code.strip_prefix(fch.as_str()).expect("");
-                if code.len() > 0 {
-                    let sch = get_first_char(code);
-                    if sch == "/" && brtp[brln - 1] == 5 {
-                        code = code.strip_prefix(sch.as_str()).expect("");
-                        brstr += &sch;
-                        brtp.pop();
-                        tokens.push(Token {
-                            token_type: TokenType::Comment,
-                            value: brstr.clone(),
-                            column: br_state.column,
-                            line: br_state.line,
-                        });
-                        brstr = String::new();
-                    } else if brln == 0 {
-                        tokens.push(Token {
-                            token_type: TokenType::Operator,
-                            value: "*".to_string(),
-                            column: state.column,
-                            line: state.line,
-                        });
-                    }
-                } else if brln == 0 {
-                    tokens.push(Token {
-                        token_type: TokenType::Operator,
-                        value: "*".to_string(),
-                        column: state.column,
-                        line: state.line,
-                    });
                 }
             }
             "\"" => {

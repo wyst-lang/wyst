@@ -5,6 +5,7 @@ use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AstType {
+    Ref,
     FunctionDeceleration,
     StructDeceleration,
     StructCall,
@@ -93,6 +94,12 @@ impl Parser {
             ast_res.tokens.push(self.tokens[index].clone());
             ast_res.tokens.push(self.tokens[index + 2].clone());
             self.index += 2;
+        } else if self.tokens.len() - index > 1
+            && self.tokens[index].value == "&"
+            && self.tokens[index + 1].token_type == TokenType::Identifier {
+                ast_res.tokens.push(self.tokens[index + 1].clone());
+                ast_res.ast_type = AstType::Ref;
+                self.index += 1;
         } else if self.tokens.len() - index > 2
             && self.tokens[index].value == "struct"
             && self.tokens[index + 1].token_type == TokenType::Identifier
@@ -188,8 +195,7 @@ impl Parser {
                         } else if self.tokens.len() - index > 2
                             && self.tokens[index + 1].value == "*"
                             && self.tokens[index + 2].token_type == TokenType::Identifier {
-                            ast_res.tokens.push(self.tokens[index].clone());
-                            ast_res.tokens.push(self.tokens[index + 1].clone());
+                            ast_res.tokens.push(self.tokens[index + 2].clone());
                             ast_res.ast_type = AstType::PointerDeceleration;
                             self.index += 2;
                         }
