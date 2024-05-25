@@ -314,7 +314,21 @@ pub fn transpile(input: String, indent: u32, state: LexerState, options: &mut Op
                         transpile(
                             ast.tokens[1].value.clone(),
                             0,
-                            LexerState { line: 1, column: 0 },
+                            state,
+                            options,
+                        ),
+                        "}"
+                    )
+                    .as_str();
+                } else if ast.ast_type == AstType::Impl {
+                    result += format!(
+                        "impl {} {}{}{}",
+                        &ast.tokens[0].value.clone(),
+                        "{",
+                        transpile(
+                            ast.tokens[1].value.clone(),
+                            0,
+                            state,
                             options,
                         ),
                         "}"
