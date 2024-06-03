@@ -6,7 +6,7 @@ mod lsp;
 use std::{fs, path::Path};
 use clap::Parser;
 use lexer::LexerState;
-use transpiler::Options;
+use transpiler::Transpiler;
 
 use crate::lsp::run_lsp_server;
 
@@ -36,7 +36,8 @@ fn main() {
                 fs::remove_dir_all("build").expect("err rm build");
             }
             fs::create_dir("build").expect("error making build");
-            let transpiled_code = transpiler::transpile(file_content, 0, LexerState { line: 1, column: 0 }, &mut Options::default());
+            let mut trsp = Transpiler::default();
+            let transpiled_code = trsp.transpile(file_content, 0, LexerState { line: 1, column: 0 });
 
             match args.rust {
                 Some(ref rust_file_name) => {
