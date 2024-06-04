@@ -1,12 +1,13 @@
-use std::collections::HashMap;
+// use std::collections::HashMap;
+// use std::fs;
+
 use std::fs;
 
+use lspower;
 use lspower::jsonrpc::Result;
 use lspower::lsp::{self, *};
 use lspower::{Client, LanguageServer};
-use lspower;
 
-use crate::lexer::LexerState;
 use crate::transpiler::Transpiler;
 
 #[derive(Debug)]
@@ -41,7 +42,7 @@ impl LanguageServer for Backend {
         _params: lsp::CompletionParams,
     ) -> lspower::jsonrpc::Result<Option<lsp::CompletionResponse>> {
         Ok(Some(CompletionResponse::Array(vec![
-            CompletionItem::new_simple("mylabel".to_string(), "mydetail".to_string())
+            CompletionItem::new_simple("mylabel".to_string(), "mydetail".to_string()),
         ])))
     }
 
@@ -50,7 +51,6 @@ impl LanguageServer for Backend {
     }
 }
 
-// #[tokio::main]
 // pub async fn run_lsp_server() {
 //     let stdin = tokio::io::stdin();
 //     let stdout = tokio::io::stdout();
@@ -62,22 +62,12 @@ impl LanguageServer for Backend {
 //         .await;
 // }
 
-pub fn run_lsp_server() {
-    let mut options = Transpiler {
-        auto_mut: true,
-        auto_macro: true,
-        auto_pub: false,
-        macros: vec![String::from("println")],
-        modnum: 0,
+#[tokio::main]
+pub async fn run_lsp_server() {
+    let mut transpiler = Transpiler {
         var_match: String::from("x"),
-        var_state: LexerState { line: 4, column: 4 },
-        matched_vars: HashMap::new()
+        ..Default::default()
     };
-    let file_content = fs::read_to_string("main.wt")
-        .expect("Error reading file");
-    let _ = options.transpile(file_content.to_string(),
-        0,
-        LexerState { line: 1, column: 0 },
-    );
-    println!("{:?}", options.matched_vars);
+    let file_content = fs::read_to_string("main.wt").expect("Error reading file");
+    transpiler.transpile(file_content, 0);
 }

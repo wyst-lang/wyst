@@ -1,21 +1,11 @@
 use crate::lexer::{lex, LexerState, TokenType};
-use crate::parser::{Ast, AstType, Parser};
+use crate::parser::{Ast, AstType, Parser, Variable, VariableType};
 use std::collections::HashMap;
 use std::fs;
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum VarTypes {
-    Var
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct Var {
-    vtype: VarTypes,
-    state: LexerState
-}
-
-#[derive(Debug, PartialEq, Clone)]
 pub struct Transpiler {
+    pub state: LexerState,
     pub auto_mut: bool,
     pub auto_macro: bool,
     pub auto_pub: bool,
@@ -23,12 +13,13 @@ pub struct Transpiler {
     pub modnum: u32,
     pub var_match: String,
     pub var_state: LexerState,
-    pub matched_vars: HashMap<String, Var>,
+    pub matched_vars: HashMap<String, Variable>,
 }
 
 impl Default for Transpiler {
     fn default() -> Transpiler {
         Transpiler {
+            state: LexerState { line: 1, column: 0 },
             auto_mut: true,
             auto_macro: true,
             auto_pub: false,
@@ -36,33 +27,33 @@ impl Default for Transpiler {
             modnum: 0,
             var_state: LexerState { line: 0, column: 0 },
             var_match: String::new(),
-            matched_vars: HashMap::new()
+            matched_vars: HashMap::new(),
         }
     }
 }
 
 impl Transpiler {
-    pub fn transpile(&mut self, input: String, indent: u32, state: LexerState) -> String {
+    pub fn transpile(&mut self, input: String, indent: u32) -> String {
         let mut result = String::new();
-        let mut variables: HashMap<String, Var> = HashMap::new();
-    
+        let mut variables: HashMap<String, Variable> = HashMap::new();
+
         if indent == 0 {
             // result += "type int = i32;\n";
         } else {
             result += " ".repeat((indent as usize) * 2).as_str();
         }
-    
-        let lexer_out = lex(input.as_str(), false, state);
-    
+        let lexer_out = lex(input.as_str(), false, self.state);
+
         match lexer_out {
             Ok(tokens) => {
-                let mut full_ast = Parser::new(tokens.clone());
+                let mut full_ast = Parser::new(tokens.clone(), variables);
                 let mut last_ast = Ast {
                     ast_type: AstType::Other,
                     tokens: vec![],
                 };
-                while full_ast.tokens.len() > full_ast.index as usize {
-                    let ast = full_ast.next();
+                for ast in full_ast.parse() {
+                    let variables = full_ast.variables.clone();
+                    println!("{:?}", variables);
                     if last_ast.tokens.len() > 0 {
                         let mut fl = 0;
                         for t in &last_ast.tokens {
@@ -83,7 +74,7 @@ impl Transpiler {
                         ast_type: ast.ast_type.clone(),
                         tokens: ast.tokens.clone(),
                     };
-    
+
                     if ast.ast_type == AstType::FunctionDeceleration {
                         if self.auto_pub {
                             result += "pub ";
@@ -91,22 +82,9 @@ impl Transpiler {
                         result += format!(
                             "fn {}({}) -> {} {}",
                             ast.tokens[1].value,
-                            self.transpile_round(
-                                ast.tokens[2].value.clone(),
-                                LexerState {
-                                    line: ast.tokens[2].line,
-                                    column: ast.tokens[2].column
-                                }
-                            ),
+                            self.transpile_round(ast.tokens[2].value.clone(),),
                             ast.tokens[0].value,
-                            self.transpile(
-                                ast.tokens[3].value.clone(),
-                                indent + 1,
-                                LexerState {
-                                    line: ast.tokens[3].line,
-                                    column: ast.tokens[3].column
-                                }
-                            )
+                            self.transpile(ast.tokens[3].value.clone(), indent + 1)
                         )
                         .as_str();
                     } else if ast.ast_type == AstType::VoidFunctionDeceleration {
@@ -116,21 +94,8 @@ impl Transpiler {
                         result += format!(
                             "fn {}({}) {}",
                             ast.tokens[1].value,
-                            self.transpile_round(
-                                ast.tokens[2].value.clone(),
-                                LexerState {
-                                    line: ast.tokens[2].line,
-                                    column: ast.tokens[2].column
-                                }
-                            ),
-                            self.transpile(
-                                ast.tokens[3].value.clone(),
-                                indent + 1,
-                                LexerState {
-                                    line: ast.tokens[3].line,
-                                    column: ast.tokens[3].column
-                                },
-                            )
+                            self.transpile_round(ast.tokens[2].value.clone(),),
+                            self.transpile(ast.tokens[3].value.clone(), indent + 1,)
                         )
                         .as_str();
                     } else if ast.ast_type == AstType::StructDeceleration {
@@ -141,14 +106,8 @@ impl Transpiler {
                             "struct {} {} {}",
                             ast.tokens[0].value,
                             "{\n",
-                            self.transpile_round(
-                                ast.tokens[1].value.clone(),
-                                LexerState {
-                                    line: ast.tokens[1].line,
-                                    column: ast.tokens[1].column
-                                }
-                            )
-                            .trim_end()
+                            self.transpile_round(ast.tokens[1].value.clone(),)
+                                .trim_end()
                         )
                         .replace(
                             "\n",
@@ -158,36 +117,27 @@ impl Transpiler {
                         .as_str();
                         result += "\n}\n";
                     } else if ast.ast_type == AstType::VariableDeceleration {
-                        variables.insert(ast.tokens[1].value.clone(), Var {vtype: VarTypes::Var, state: LexerState {
-                            line: ast.tokens[1].line,
-                            column: ast.tokens[1].column,
-                        }});
                         if self.clone().auto_mut {
                             result +=
                                 format!("let mut {}: {}", ast.tokens[1].value, ast.tokens[0].value)
                                     .as_str();
                         } else {
-                            result += format!("let {}: {}", ast.tokens[1].value, ast.tokens[0].value)
-                                .as_str();
+                            result +=
+                                format!("let {}: {}", ast.tokens[1].value, ast.tokens[0].value)
+                                    .as_str();
                         }
                     } else if ast.ast_type == AstType::MutVariableDeceleration {
-                        result += format!("let mut {}: {}", ast.tokens[1].value, ast.tokens[0].value)
-                            .as_str();
+                        result +=
+                            format!("let mut {}: {}", ast.tokens[1].value, ast.tokens[0].value)
+                                .as_str();
                     } else if ast.ast_type == AstType::Other
                         && ast.tokens[0].token_type == TokenType::Round
                     {
-                        result += format!(
-                            "({})",
-                            self.transpile_round(
-                                ast.tokens[0].value.clone(),
-                                LexerState {
-                                    line: ast.tokens[0].line,
-                                    column: ast.tokens[0].column
-                                }
-                            )
-                        )
-                        .as_str();
-                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square {
+                        result +=
+                            format!("({})", self.transpile_round(ast.tokens[0].value.clone(),))
+                                .as_str();
+                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square
+                    {
                         result += format!(
                             "[{}]",
                             self.transpile_square(
@@ -203,21 +153,23 @@ impl Transpiler {
                         result += "{";
                         result += ast.tokens[0].value.as_str();
                         result += "}";
-                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Curly {
+                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Curly
+                    {
                         // if ast.tokens[0].token_type == TokenType::Newline {
                         //     result += (ast.tokens[0].value.as_str().to_owned()
                         //         + (" ".repeat((indent as usize) * 2).as_str()))
                         //     .as_str();
                         // } else {
                         // result += ast.tokens[0].value.as_str();
-                        result += self.transpile_json(
-                            ast.tokens[0].value.as_str().to_string(),
-                            LexerState {
-                                line: ast.tokens[0].line,
-                                column: ast.tokens[0].column,
-                            },
-                        )
-                        .as_str();
+                        result += self
+                            .transpile_json(
+                                ast.tokens[0].value.as_str().to_string(),
+                                LexerState {
+                                    line: ast.tokens[0].line,
+                                    column: ast.tokens[0].column,
+                                },
+                            )
+                            .as_str();
                         // }
                     } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Ptr {
                         result += ".";
@@ -259,35 +211,15 @@ impl Transpiler {
                         result += format!(
                             "{} {} {}",
                             ast.tokens[0].value.clone(),
-                            self.transpile_round(
-                                ast.tokens[1].value.clone(),
-                                LexerState {
-                                    line: ast.tokens[1].line,
-                                    column: ast.tokens[1].column
-                                }
-                            ),
-                            self.transpile(
-                                ast.tokens[2].value.clone(),
-                                indent + 1,
-                                LexerState {
-                                    line: ast.tokens[2].line,
-                                    column: ast.tokens[2].column
-                                }
-                            ),
+                            self.transpile_round(ast.tokens[1].value.clone(),),
+                            self.transpile(ast.tokens[2].value.clone(), indent + 1,),
                         )
                         .as_str();
                     } else if ast.ast_type == AstType::State2 {
                         result += format!(
                             "{} {}",
                             ast.tokens[0].value.clone(),
-                            self.transpile(
-                                ast.tokens[1].value.clone(),
-                                indent + 1,
-                                LexerState {
-                                    line: ast.tokens[1].line,
-                                    column: ast.tokens[1].column
-                                },
-                            ),
+                            self.transpile(ast.tokens[1].value.clone(), indent + 1,),
                         )
                         .as_str();
                     } else if ast.ast_type == AstType::Namespace {
@@ -295,11 +227,7 @@ impl Transpiler {
                             "mod {} {}{}{}",
                             &ast.tokens[0].value.clone(),
                             "{",
-                            self.transpile(
-                                ast.tokens[1].value.clone(),
-                                0,
-                                state,
-                            ),
+                            self.transpile(ast.tokens[1].value.clone(), 0),
                             "}"
                         )
                         .as_str();
@@ -308,21 +236,23 @@ impl Transpiler {
                             "impl {} {}{}{}",
                             &ast.tokens[0].value.clone(),
                             "{",
-                            self.transpile(
-                                ast.tokens[1].value.clone(),
-                                0,
-                                state,
-                            ),
+                            self.transpile(ast.tokens[1].value.clone(), 0,),
                             "}"
                         )
                         .as_str();
                     } else if ast.ast_type == AstType::PointerDeceleration {
                         if self.auto_mut {
-                            result +=
-                                format!("let mut {}: &mut {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
+                            result += format!(
+                                "let mut {}: &mut {}",
+                                ast.tokens[1].value, ast.tokens[0].value
+                            )
+                            .as_str();
                         } else {
-                            result +=
-                               format!("let {}: &mut {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
+                            result += format!(
+                                "let {}: &mut {}",
+                                ast.tokens[1].value, ast.tokens[0].value
+                            )
+                            .as_str();
                         }
                     }
                     // flp
@@ -357,20 +287,22 @@ impl Transpiler {
                         }
                     }
                 }
-    
+
                 result = result.trim_end().to_string();
-    
-                if self.var_match != "" && (state.line + input.len()) > self.var_state.line {
-                    for (name, var) in variables {
-                        if (self.var_state.line > var.state.line ||
-                            (self.var_state.line == var.state.line && self.var_state.column > var.state.column)) &&
-                            name.to_lowercase().starts_with(&self.var_match) {
-                                self.matched_vars.insert(name, var);
-                        }
-                    }
+
+                if self.var_match != "" && (self.state.line + input.len()) > self.var_state.line {
+                    // for (name, var) in variables {
+                    //     if (self.var_state.line > var.line
+                    //         || (self.var_state.line == var.line
+                    //             && self.var_state.column > var.column))
+                    //         && name.to_lowercase().starts_with(&self.var_match)
+                    //     {
+                    //         self.matched_vars.insert(name, var);
+                    //     }
+                    // }
                     self.var_match = String::new();
                 }
-    
+
                 if indent > 0 {
                     result += "\n";
                     result += " ".repeat((indent as usize - 1) * 2).as_str();
@@ -387,16 +319,12 @@ impl Transpiler {
     pub fn transpile_mod(&mut self, ast: Ast, s: &str) -> String {
         let modfile = ast.tokens[0].value.as_str();
         let modname = format!(
-            "{}_{}",
-            clean_incl(modfile.split(".").collect::<Vec<_>>()[0]),
+            "mod_{}",
+            // clean_incl(modfile.split(".").collect::<Vec<_>>()[0]),
             self.clone().modnum
         );
         let file_content = fs::read_to_string(s.to_string() + modfile).expect("Error reading file");
-        let transpiled_code = self.transpile(
-            file_content,
-            0,
-            LexerState { line: 1, column: 0 }
-        );
+        let transpiled_code = self.transpile(file_content, 0);
         fs::write(
             ("build/".to_string() + modname.as_str()) + ".rs",
             transpiled_code,
@@ -404,19 +332,19 @@ impl Transpiler {
         .expect("Error writing file");
         modname
     }
-    pub fn transpile_round(&mut self, input: String, state: LexerState) -> String {
+    pub fn transpile_round(&mut self, input: String) -> String {
         let mut result = String::new();
-        let lexer_out = lex(input.as_str(), false, state);
-    
+        let lexer_out = lex(input.as_str(), false, self.state);
+        let mut variables: HashMap<String, Variable> = HashMap::new();
+
         match lexer_out {
             Ok(tokens) => {
-                let mut full_ast = Parser::new(tokens.clone());
+                let mut full_ast = Parser::new(tokens.clone(), variables);
                 let mut last_ast = Ast {
                     ast_type: AstType::Other,
                     tokens: vec![],
                 };
-                while full_ast.tokens.len() > full_ast.index as usize {
-                    let ast = full_ast.next();
+                for ast in full_ast.parse() {
                     if last_ast.tokens.len() > 0 {
                         let mut fl = 0;
                         for t in &last_ast.tokens {
@@ -438,26 +366,21 @@ impl Transpiler {
                         tokens: ast.tokens.clone(),
                     };
                     if ast.ast_type == AstType::VariableDeceleration {
-                        result += format!("{}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
+                        result +=
+                            format!("{}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
                     } else if ast.ast_type == AstType::MutVariableDeceleration {
-                        result +=
-                            format!("mut {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
+                        result += format!("mut {}: {}", ast.tokens[1].value, ast.tokens[0].value)
+                            .as_str();
                     } else if ast.ast_type == AstType::PointerDeceleration {
+                        result += format!("{}: &mut {}", ast.tokens[1].value, ast.tokens[0].value)
+                            .as_str();
+                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Round
+                    {
                         result +=
-                            format!("{}: &mut {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
-                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Round {
-                        result += format!(
-                            "({})",
-                            self.transpile_round(
-                                ast.tokens[0].value.clone(),
-                                LexerState {
-                                    line: ast.tokens[0].line,
-                                    column: ast.tokens[0].column
-                                }
-                            )
-                        )
-                        .as_str();
-                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square {
+                            format!("({})", self.transpile_round(ast.tokens[0].value.clone(),))
+                                .as_str();
+                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square
+                    {
                         result += format!(
                             "[{}]",
                             self.transpile_square(
@@ -471,15 +394,17 @@ impl Transpiler {
                         .as_str();
                     } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Ptr {
                         result += ".";
-                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Curly {
-                        result += self.transpile_json(
-                            ast.tokens[0].value.as_str().to_string(),
-                            LexerState {
-                                line: ast.tokens[0].line,
-                                column: ast.tokens[0].column,
-                            },
-                        )
-                        .as_str();
+                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Curly
+                    {
+                        result += self
+                            .transpile_json(
+                                ast.tokens[0].value.as_str().to_string(),
+                                LexerState {
+                                    line: ast.tokens[0].line,
+                                    column: ast.tokens[0].column,
+                                },
+                            )
+                            .as_str();
                     } else if ast.ast_type == AstType::StructCall {
                         result += ast.tokens[0].value.as_str();
                         result += " {";
@@ -494,7 +419,7 @@ impl Transpiler {
                         result += ast.tokens[0].value.as_str();
                     }
                 }
-    
+
                 result = result.trim_end().to_string();
                 result
             }
@@ -503,20 +428,20 @@ impl Transpiler {
             }
         }
     }
-    
+
     pub fn transpile_square(&mut self, input: String, state: LexerState) -> String {
         let mut result = String::new();
         let lexer_out = lex(input.as_str(), false, state);
-    
+        let mut variables: HashMap<String, Variable> = HashMap::new();
+
         match lexer_out {
             Ok(tokens) => {
-                let mut full_ast = Parser::new(tokens.clone());
+                let mut full_ast = Parser::new(tokens.clone(), variables);
                 let mut last_ast = Ast {
                     ast_type: AstType::Other,
                     tokens: vec![],
                 };
-                while full_ast.tokens.len() > full_ast.index as usize {
-                    let ast = full_ast.next();
+                for ast in full_ast.parse() {
                     if last_ast.tokens.len() > 0 {
                         let mut fl = 0;
                         for t in &last_ast.tokens {
@@ -537,25 +462,20 @@ impl Transpiler {
                         ast_type: ast.ast_type.clone(),
                         tokens: ast.tokens.clone(),
                     };
-    
+
                     if ast.ast_type == AstType::VariableDeceleration {
-                        result += format!("{}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
-                    } else if ast.ast_type == AstType::MutVariableDeceleration {
                         result +=
-                            format!("mut {}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
-                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Round {
-                        result += format!(
-                            "({})",
-                            self.transpile_round(
-                                ast.tokens[0].value.clone(),
-                                LexerState {
-                                    line: ast.tokens[0].line,
-                                    column: ast.tokens[0].column
-                                }
-                            )
-                        )
-                        .as_str();
-                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square {
+                            format!("{}: {}", ast.tokens[1].value, ast.tokens[0].value).as_str();
+                    } else if ast.ast_type == AstType::MutVariableDeceleration {
+                        result += format!("mut {}: {}", ast.tokens[1].value, ast.tokens[0].value)
+                            .as_str();
+                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Round
+                    {
+                        result +=
+                            format!("({})", self.transpile_round(ast.tokens[0].value.clone(),))
+                                .as_str();
+                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square
+                    {
                         result += format!(
                             "[{}]",
                             self.transpile_square(
@@ -569,15 +489,17 @@ impl Transpiler {
                         .as_str();
                     } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Ptr {
                         result += ".";
-                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Curly {
-                        result += self.transpile_json(
-                            ast.tokens[0].value.as_str().to_string(),
-                            LexerState {
-                                line: ast.tokens[0].line,
-                                column: ast.tokens[0].column,
-                            },
-                        )
-                        .as_str();
+                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Curly
+                    {
+                        result += self
+                            .transpile_json(
+                                ast.tokens[0].value.as_str().to_string(),
+                                LexerState {
+                                    line: ast.tokens[0].line,
+                                    column: ast.tokens[0].column,
+                                },
+                            )
+                            .as_str();
                     } else if ast.ast_type == AstType::StructCall {
                         result += ast.tokens[0].value.as_str();
                         result += " {";
@@ -589,7 +511,7 @@ impl Transpiler {
                         result += ast.tokens[0].value.as_str();
                     }
                 }
-    
+
                 result = result.trim_end().to_string();
                 result
             }
@@ -598,22 +520,22 @@ impl Transpiler {
             }
         }
     }
-    
+
     pub fn transpile_json(&mut self, input: String, state: LexerState) -> String {
         let mut result = String::new();
         let lexer_out = lex(input.as_str(), false, state);
-    
+        let mut variables: HashMap<String, Variable> = HashMap::new();
+
         match lexer_out {
             Ok(tokens) => {
-                let mut full_ast = Parser::new(tokens.clone());
+                let mut full_ast = Parser::new(tokens.clone(), variables);
                 full_ast.json = true;
                 result += "HashMap::from([";
                 let mut last_ast = Ast {
                     ast_type: AstType::Other,
                     tokens: vec![],
                 };
-                while full_ast.tokens.len() > full_ast.index as usize {
-                    let ast = full_ast.next();
+                for ast in full_ast.parse() {
                     if last_ast.tokens.len() > 0 {
                         let mut fl = 0;
                         for t in &last_ast.tokens {
@@ -634,26 +556,20 @@ impl Transpiler {
                         ast_type: ast.ast_type.clone(),
                         tokens: ast.tokens.clone(),
                     };
-    
+
                     if ast.ast_type == AstType::Json {
                         result += "(";
                         result += ast.tokens[0].value.as_str();
                         result += ",";
                         result += ast.tokens[1].value.as_str();
                         result += ")";
-                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Round {
-                        result += format!(
-                            "({})",
-                            self.transpile_round(
-                                ast.tokens[0].value.clone(),
-                                LexerState {
-                                    line: ast.tokens[0].line,
-                                    column: ast.tokens[0].column
-                                }
-                            )
-                        )
-                        .as_str();
-                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square {
+                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Round
+                    {
+                        result +=
+                            format!("({})", self.transpile_round(ast.tokens[0].value.clone(),))
+                                .as_str();
+                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square
+                    {
                         result += format!(
                             "[{}]",
                             self.transpile_square(
@@ -665,15 +581,17 @@ impl Transpiler {
                             )
                         )
                         .as_str();
-                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Curly {
-                        result += self.transpile_json(
-                            ast.tokens[0].value.as_str().to_string(),
-                            LexerState {
-                                line: ast.tokens[0].line,
-                                column: ast.tokens[0].column,
-                            },
-                        )
-                        .as_str();
+                    } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Curly
+                    {
+                        result += self
+                            .transpile_json(
+                                ast.tokens[0].value.as_str().to_string(),
+                                LexerState {
+                                    line: ast.tokens[0].line,
+                                    column: ast.tokens[0].column,
+                                },
+                            )
+                            .as_str();
                     } else {
                         result += ast.tokens[0].value.as_str();
                     }
@@ -686,18 +604,18 @@ impl Transpiler {
                 panic!("Invalid syntax at code.ws:{}:{}", state.line, state.column);
             }
         }
-    }    
+    }
 }
 
-fn clean_incl(input: &str) -> String {
-    input
-        .chars()
-        .map(|c| {
-            if c.is_alphanumeric() || c == '_' {
-                c
-            } else {
-                '_'
-            }
-        })
-        .collect()
-}
+// fn clean_incl(input: &str) -> String {
+//     input
+//         .chars()
+//         .map(|c| {
+//             if c.is_alphanumeric() || c == '_' {
+//                 c
+//             } else {
+//                 '_'
+//             }
+//         })
+//         .collect()
+// }
