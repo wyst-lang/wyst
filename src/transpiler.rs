@@ -1,6 +1,5 @@
 use crate::lexer::{lex, LexerState, TokenType};
-use crate::parser::{Ast, AstType, Parser, Variable, VariableType};
-use std::collections::HashMap;
+use crate::parser::{Ast, AstType, Parser};
 use std::fs;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -11,9 +10,6 @@ pub struct Transpiler {
     pub auto_pub: bool,
     pub macros: Vec<String>,
     pub modnum: u32,
-    pub var_match: String,
-    pub var_state: LexerState,
-    pub matched_vars: HashMap<String, Variable>,
 }
 
 impl Default for Transpiler {
@@ -25,9 +21,6 @@ impl Default for Transpiler {
             auto_pub: false,
             macros: vec![String::from("println")],
             modnum: 0,
-            var_state: LexerState { line: 0, column: 0 },
-            var_match: String::new(),
-            matched_vars: HashMap::new(),
         }
     }
 }
@@ -35,8 +28,6 @@ impl Default for Transpiler {
 impl Transpiler {
     pub fn transpile(&mut self, input: String, indent: u32) -> String {
         let mut result = String::new();
-        let mut variables: HashMap<String, Variable> = HashMap::new();
-
         if indent == 0 {
             // result += "type int = i32;\n";
         } else {
@@ -46,14 +37,12 @@ impl Transpiler {
 
         match lexer_out {
             Ok(tokens) => {
-                let mut full_ast = Parser::new(tokens.clone(), variables);
+                let mut full_ast = Parser::new(tokens.clone());
                 let mut last_ast = Ast {
                     ast_type: AstType::Other,
                     tokens: vec![],
                 };
                 for ast in full_ast.parse() {
-                    let variables = full_ast.variables.clone();
-                    println!("{:?}", variables);
                     if last_ast.tokens.len() > 0 {
                         let mut fl = 0;
                         for t in &last_ast.tokens {
@@ -290,7 +279,7 @@ impl Transpiler {
 
                 result = result.trim_end().to_string();
 
-                if self.var_match != "" && (self.state.line + input.len()) > self.var_state.line {
+                // if self.var_match != "" && (self.state.line + input.len()) > self.var_state.line {
                     // for (name, var) in variables {
                     //     if (self.var_state.line > var.line
                     //         || (self.var_state.line == var.line
@@ -300,8 +289,8 @@ impl Transpiler {
                     //         self.matched_vars.insert(name, var);
                     //     }
                     // }
-                    self.var_match = String::new();
-                }
+                    // self.var_match = String::new();
+                // }
 
                 if indent > 0 {
                     result += "\n";
@@ -335,11 +324,9 @@ impl Transpiler {
     pub fn transpile_round(&mut self, input: String) -> String {
         let mut result = String::new();
         let lexer_out = lex(input.as_str(), false, self.state);
-        let mut variables: HashMap<String, Variable> = HashMap::new();
-
         match lexer_out {
             Ok(tokens) => {
-                let mut full_ast = Parser::new(tokens.clone(), variables);
+                let mut full_ast = Parser::new(tokens.clone());
                 let mut last_ast = Ast {
                     ast_type: AstType::Other,
                     tokens: vec![],
@@ -432,11 +419,9 @@ impl Transpiler {
     pub fn transpile_square(&mut self, input: String, state: LexerState) -> String {
         let mut result = String::new();
         let lexer_out = lex(input.as_str(), false, state);
-        let mut variables: HashMap<String, Variable> = HashMap::new();
-
         match lexer_out {
             Ok(tokens) => {
-                let mut full_ast = Parser::new(tokens.clone(), variables);
+                let mut full_ast = Parser::new(tokens.clone());
                 let mut last_ast = Ast {
                     ast_type: AstType::Other,
                     tokens: vec![],
@@ -524,11 +509,9 @@ impl Transpiler {
     pub fn transpile_json(&mut self, input: String, state: LexerState) -> String {
         let mut result = String::new();
         let lexer_out = lex(input.as_str(), false, state);
-        let mut variables: HashMap<String, Variable> = HashMap::new();
-
         match lexer_out {
             Ok(tokens) => {
-                let mut full_ast = Parser::new(tokens.clone(), variables);
+                let mut full_ast = Parser::new(tokens.clone());
                 full_ast.json = true;
                 result += "HashMap::from([";
                 let mut last_ast = Ast {

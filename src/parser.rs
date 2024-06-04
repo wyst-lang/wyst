@@ -1,7 +1,7 @@
 use crate::lexer::{Token, TokenType};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::{collections::HashMap, fmt};
+use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AstType {
@@ -64,29 +64,16 @@ pub struct Parser {
     pub include_regex: Lazy<Regex>,
     pub include_regex_local: Lazy<Regex>,
     pub json: bool,
-    pub variables: HashMap<String, Variable>,
-}
-#[derive(Debug, PartialEq, Clone)]
-pub enum VariableType {
-    Func,
-    Var,
-}
-#[derive(Debug, PartialEq, Clone)]
-pub struct Variable {
-    pub vtype: VariableType,
-    pub indent: u32,
-    pub line: usize,
-    pub column: usize,
 }
 
 impl Parser {
-    pub fn new(tokens: Vec<Token>, variables: HashMap<String, Variable>) -> Parser {
+    pub fn new(tokens: Vec<Token>) -> Parser {
         Parser {
             tokens: tokens,
             index: 0,
             include_regex: Lazy::new(|| Regex::new(r"^(#include *)<(.*?)>").unwrap()),
             include_regex_local: Lazy::new(|| Regex::new(r#"^(#include *)"(.*?)""#).unwrap()),
-            variables: variables,
+            // variables: variables,
             json: false,
         }
     }
@@ -179,15 +166,6 @@ impl Parser {
                             } else {
                                 ast_res.ast_type = AstType::FunctionDeceleration;
                             }
-                            self.variables.insert(
-                                self.tokens[index + 1].value.clone(),
-                                Variable {
-                                    vtype: VariableType::Func,
-                                    indent: 0,
-                                    line: self.tokens[index + 1].line.clone(),
-                                    column: self.tokens[index + 1].column.clone(),
-                                },
-                            );
                             self.index += 3;
                         } else if self.tokens.len() - index > 1
                             && self.tokens[index + 1].token_type == TokenType::Curly

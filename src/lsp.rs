@@ -1,14 +1,13 @@
 // use std::collections::HashMap;
 // use std::fs;
 
-use std::fs;
+use std::vec;
 
-use lspower;
+use lspower::{self, LspService, Server};
 use lspower::jsonrpc::Result;
 use lspower::lsp::{self, *};
 use lspower::{Client, LanguageServer};
 
-use crate::transpiler::Transpiler;
 
 #[derive(Debug)]
 struct Backend {
@@ -41,9 +40,8 @@ impl LanguageServer for Backend {
         &self,
         _params: lsp::CompletionParams,
     ) -> lspower::jsonrpc::Result<Option<lsp::CompletionResponse>> {
-        Ok(Some(CompletionResponse::Array(vec![
-            CompletionItem::new_simple("mylabel".to_string(), "mydetail".to_string()),
-        ])))
+        let completion_items: Vec<CompletionItem> = Vec::new();
+        Ok(Some(CompletionResponse::Array(completion_items)))
     }
 
     async fn shutdown(&self) -> Result<()> {
@@ -51,23 +49,26 @@ impl LanguageServer for Backend {
     }
 }
 
-// pub async fn run_lsp_server() {
-//     let stdin = tokio::io::stdin();
-//     let stdout = tokio::io::stdout();
-
-//     let (service, messages) = LspService::new(|client| Backend { client });
-//     Server::new(stdin, stdout)
-//         .interleave(messages)
-//         .serve(service)
-//         .await;
-// }
-
 #[tokio::main]
 pub async fn run_lsp_server() {
-    let mut transpiler = Transpiler {
-        var_match: String::from("x"),
-        ..Default::default()
-    };
-    let file_content = fs::read_to_string("main.wt").expect("Error reading file");
-    transpiler.transpile(file_content, 0);
+    let stdin = tokio::io::stdin();
+    let stdout = tokio::io::stdout();
+
+    let (service, messages) = LspService::new(|client| Backend { client });
+    Server::new(stdin, stdout)
+        .interleave(messages)
+        .serve(service)
+        .await;
 }
+
+// #[tokio::main]
+// pub async fn run_lsp_server() {
+//     let mut transpiler = Transpiler {
+//         var_match: String::from("x"),
+//         var_state: LexerState { line: 6, column: 9 },
+//         ..Default::default()
+//     };
+//     let file_content = fs::read_to_string("main.wt").expect("Error reading file");
+//     transpiler.transpile(file_content, 0, HashMap::new());
+//     println!("{:?}", transpiler.matched_vars);
+// }
