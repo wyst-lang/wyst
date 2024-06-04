@@ -4,6 +4,7 @@ mod lsp;
 mod parser;
 mod transpiler;
 use clap::Parser;
+use parser::new_vars;
 use std::{fs, path::Path};
 use transpiler::Transpiler;
 
@@ -35,7 +36,7 @@ fn main() {
             }
             fs::create_dir("build").expect("error making build");
             let mut trsp = Transpiler::default();
-            let transpiled_code = trsp.transpile(file_content, 0);
+            let transpiled_code = trsp.transpile(file_content, 0, new_vars());
 
             match args.rust {
                 Some(ref rust_file_name) => {
