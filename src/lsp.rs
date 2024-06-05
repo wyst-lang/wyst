@@ -4,7 +4,7 @@ use regex::Regex;
 use std::io::{stdin, stdout, Read};
 
 pub fn run_lsp_server() {
-    let clpattern = Lazy::new(|| Regex::new(r"Content-Length: (\d+)\r\n").unwrap());
+    let clpattern = Lazy::new(|| Regex::new(r"Content-Length: (\d+)\n").unwrap());
     let mut sin = stdin();
     let mut sout = stdout();
 
@@ -14,11 +14,11 @@ pub fn run_lsp_server() {
         let mut input = String::new();
         let _ = sin.read_line(&mut input);
         if let Some(caps) = clpattern.captures(&input) {
-            let x = 30;
-            let mut buf = vec![0u8; x];
+            let conent_len = *(&caps[1].parse::<usize>().unwrap());
+            let mut buf = vec![0u8; conent_len];
             sin.read_exact(&mut buf);
+            let json_string = String::from_utf8(buf).expect("Our bytes should be valid utf8");
             
-            println!("{}", &caps[1])
         }
     }
 }
