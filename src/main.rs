@@ -7,7 +7,6 @@ use clap::Parser;
 use parser::new_vars;
 use std::{fs, path::Path};
 use transpiler::Transpiler;
-mod lspcom;
 
 use crate::lsp::run_lsp_server;
 
