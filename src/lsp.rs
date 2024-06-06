@@ -1,11 +1,15 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use serde_json::{self, Value};
+
 use std::{
     fs::{self, File},
     io::{stdin, Read, Write},
     path::Path,
 };
+
+pub fn run_method<F>(func: F) {}
 
 pub fn run_lsp_server() {
     if Path::new("/Users/klestiselimaj/work/wyst/log.txt").exists() {
