@@ -8,7 +8,7 @@ use regex::Regex;
 use serde_json::{self, json, Value};
 use std::{
     collections::HashMap,
-    fs::{self, File},
+    fs,
     io::{stdin, stdout, Read, Write},
     path::Path,
 };
@@ -16,7 +16,6 @@ use std::{
 #[derive(Debug)]
 pub struct Server {
     documents: HashMap<String, String>,
-    file: File,
 }
 
 impl LspServer for Server {
@@ -73,9 +72,7 @@ pub fn run_lsp_server() {
     let mut reader = stdin();
     let mut server = Server {
         documents: HashMap::new(),
-        file: File::create("/home/leo/work/wyst/log.txt").expect("err_log"),
     };
-    writeln!(server.file, "It's running!").unwrap();
     loop {
         let mut input = String::new();
         if reader.read_line(&mut input).is_err() {
