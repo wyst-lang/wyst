@@ -1,8 +1,9 @@
-use std::collections::HashMap;
-use crate::transpiler::Transpiler;
-use lsp_types::{CompletionResponse, InitializeResult};
-use rand::{thread_rng, Rng};
 use crate::parser::{new_vars, Variable};
+use crate::transpiler::Transpiler;
+use lsp_types::{CompletionParams, CompletionResponse, InitializeResult};
+use rand::{thread_rng, Rng};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 pub fn place_at(input: String, in2: String, line_goal: usize, column_goal: usize) -> String {
     let mut line: usize = 1;
@@ -38,9 +39,21 @@ pub mod request_methods {
     pub const COMPLETION: &str = "textDocument/completion";
     pub const INITIALIZED: &str = "initialized";
     pub const SHUTDOWN: &str = "shutdown";
+    pub const DID_CHANGE: &str = "textDocument/didChange";
 }
 
 pub trait LspServer {
-    fn completion(&mut self) -> CompletionResponse { CompletionResponse::Array(vec![]) }
-    fn initialize(&mut self) -> InitializeResult { InitializeResult::default() }
+    fn did_change(&mut self, _params: TextDocumentChangeParams) {}
+    fn completion(&mut self, _params: CompletionParams) -> CompletionResponse {
+        CompletionResponse::Array(vec![])
+    }
+    fn initialize(&mut self) -> InitializeResult {
+        InitializeResult::default()
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Clone, Default, Deserialize, Serialize)]
+pub struct TextDocumentChangeParams {
+    pub uri: String,
+    pub text: String,
 }

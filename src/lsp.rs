@@ -1,4 +1,7 @@
-use crate::lspcom::{request_methods, LspServer};
+use crate::{
+    lspcom::{get_completion, request_methods, LspServer, TextDocumentChangeParams},
+    parser::VariableType,
+};
 use lsp_types::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -13,6 +16,7 @@ use std::{
 #[derive(Debug)]
 pub struct Server {
     documents: HashMap<String, String>,
+    file: File,
 }
 
 impl LspServer for Server {
@@ -28,11 +32,36 @@ impl LspServer for Server {
             ..Default::default()
         }
     }
-    fn completion(&mut self) -> CompletionResponse {
-        CompletionResponse::Array(vec![CompletionItem::new_simple(
-            "mytest".to_string(),
-            "mydetail".to_string(),
-        )])
+    fn completion(&mut self, params: CompletionParams) -> CompletionResponse {
+        let text = self
+            .documents
+            .get(params.text_document_position.text_document.uri.as_str())
+            .expect("err_textdoc");
+        let items = get_completion(
+            text.clone(),
+            params.text_document_position.position.line as usize + 1,
+            params.text_document_position.position.character as usize,
+        );
+        let mut completion_items: Vec<CompletionItem> = Vec::new();
+        for (name, var) in items {
+            let mut item = CompletionItem::new_simple(name, "mydetail".to_string());
+            match var.vtype {
+                VariableType::Func => {
+                    item.kind = Some(CompletionItemKind::FUNCTION);
+                }
+                VariableType::Var => {
+                    item.kind = Some(CompletionItemKind::VARIABLE);
+                }
+                VariableType::Keyword => {
+                    item.kind = Some(CompletionItemKind::KEYWORD);
+                }
+            }
+            completion_items.push(item);
+        }
+        CompletionResponse::Array(completion_items)
+    }
+    fn did_change(&mut self, params: TextDocumentChangeParams) {
+        self.documents.insert(params.uri, params.text);
     }
 }
 
@@ -40,39 +69,31 @@ pub fn run_lsp_server() {
     if Path::new("/home/leo/work/wyst/log.txt").exists() {
         fs::remove_file("/home/leo/work/wyst/log.txt").unwrap();
     }
-    let mut file = File::create("/home/leo/work/wyst/log.txt").expect("err_log");
     let clpattern = Lazy::new(|| Regex::new(r"^Content-Length: (\d+)").unwrap());
     let mut reader = stdin();
     let mut server = Server {
         documents: HashMap::new(),
+        file: File::create("/home/leo/work/wyst/log.txt").expect("err_log"),
     };
-    writeln!(file, "It's running!").unwrap();
-
+    writeln!(server.file, "It's running!").unwrap();
     loop {
-        writeln!(file, "waiting").unwrap();
         let mut input = String::new();
         if reader.read_line(&mut input).is_err() {
-            writeln!(file, "Error reading line").unwrap();
             continue;
         }
-        writeln!(file, "{}", input).unwrap();
         let stdout = stdout();
         let mut handle = stdout.lock();
 
         if let Some(caps) = clpattern.captures(&input) {
             let content_len = caps[1].parse::<usize>().unwrap() + 2;
-            writeln!(file, "ok {}", content_len).unwrap();
             let mut buf = vec![0u8; content_len];
             if reader.read_exact(&mut buf).is_err() {
-                writeln!(file, "Error reading content").unwrap();
                 continue;
             }
             let json_string = String::from_utf8(buf).expect("Our bytes should be valid utf8");
-            writeln!(file, "{}", &json_string).unwrap();
             let client_json: Value = serde_json::from_str(&json_string).expect("err_json");
             let response = match client_json["method"].as_str().unwrap() {
                 request_methods::INITIALIZE => {
-                    writeln!(file, "test").unwrap();
                     serde_json::to_string(&json!({
                         "jsonrpc": "2.0",
                         "id": client_json["id"].as_u64().unwrap(),
@@ -83,20 +104,17 @@ pub fn run_lsp_server() {
                 request_methods::COMPLETION => serde_json::to_string(&json!({
                     "jsonrpc": "2.0",
                     "id": client_json["id"].as_u64().unwrap(),
-                    "result": server.completion()
+                    "result": server.completion(serde_json::from_value(serde_json::to_value(client_json["params"].as_object()).expect("err_pars2")).unwrap())
                 }))
                 .unwrap(),
+                request_methods::DID_CHANGE =>{
+                    server.did_change(serde_json::from_value(serde_json::to_value(client_json["params"].as_object()).expect("err_pars2")).expect("err_pars3"));
+                    "None".to_string()},
                 request_methods::INITIALIZED => "None".to_string(),
                 request_methods::SHUTDOWN => {
                     return;
                 }
                 _ => {
-                    writeln!(
-                        file,
-                        "other request {}",
-                        client_json["method"].as_str().unwrap()
-                    )
-                    .unwrap();
                     continue;
                 }
             };
@@ -110,10 +128,8 @@ pub fn run_lsp_server() {
                     .write_all(header.as_bytes())
                     .expect("err_write_stdin");
                 handle.flush().expect("err_flush_stdin");
-                writeln!(file, "{}", header).unwrap();
             }
         } else {
-            writeln!(file, "not match").unwrap();
         }
     }
 }
