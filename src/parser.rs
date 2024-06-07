@@ -73,10 +73,7 @@ pub struct Parser {
 pub fn new_vars() -> HashMap<String, Variable> {
     HashMap::from([(
         "void".to_string(),
-        Variable {
-            vtype: VariableType::Keyword,
-            state: LexerState { line: 0, column: 0 },
-        },
+        Variable::new_var(VariableType::Keyword, LexerState { line: 0, column: 0 }),
     )])
 }
 
@@ -182,13 +179,13 @@ impl Parser {
                             }
                             self.variables.insert(
                                 self.tokens[index + 1].clone().value,
-                                Variable {
-                                    vtype: VariableType::Func,
-                                    state: LexerState {
+                                Variable::new_func(
+                                    VariableType::Func,
+                                    LexerState {
                                         line: self.tokens[index + 1].clone().line,
                                         column: self.tokens[index + 1].clone().column,
                                     },
-                                },
+                                ),
                             );
                             self.index += 3;
                         } else if self.tokens.len() - index > 1
@@ -212,13 +209,13 @@ impl Parser {
                                 self.index += 1;
                                 self.variables.insert(
                                     self.tokens[index + 1].clone().value,
-                                    Variable {
-                                        vtype: VariableType::Var,
-                                        state: LexerState {
+                                    Variable::new_var(
+                                        VariableType::Var,
+                                        LexerState {
                                             line: self.tokens[index + 1].clone().line,
                                             column: self.tokens[index + 1].clone().column,
                                         },
-                                    },
+                                    ),
                                 );
                             } else if self.tokens.len() - index > 2
                                 && self.tokens[index + 2].token_type == TokenType::Identifier
@@ -232,13 +229,13 @@ impl Parser {
                                 self.index += 2;
                                 self.variables.insert(
                                     self.tokens[index + 1].clone().value,
-                                    Variable {
-                                        vtype: VariableType::Var,
-                                        state: LexerState {
+                                    Variable::new_var(
+                                        VariableType::Var,
+                                        LexerState {
                                             line: self.tokens[index + 1].clone().line,
                                             column: self.tokens[index + 1].clone().column,
                                         },
-                                    },
+                                    ),
                                 );
                             } else if self.tokens.len() - index > 2
                                 && self.tokens[index + 1].value == "*"
@@ -249,13 +246,13 @@ impl Parser {
                                 self.index += 2;
                                 self.variables.insert(
                                     self.tokens[index + 1].clone().value,
-                                    Variable {
-                                        vtype: VariableType::Var,
-                                        state: LexerState {
+                                    Variable::new_var(
+                                        VariableType::Var,
+                                        LexerState {
                                             line: self.tokens[index + 1].clone().line,
                                             column: self.tokens[index + 1].clone().column,
                                         },
-                                    },
+                                    ),
                                 );
                             }
                         }

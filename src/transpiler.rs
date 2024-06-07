@@ -3,8 +3,8 @@ use crate::{
     parser::{new_vars, Ast, AstType, Parser},
     variable::{Variable, VariableType},
 };
-use std::collections::HashMap;
 use std::fs;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Transpiler {
@@ -98,31 +98,28 @@ impl Transpiler {
                         if self.auto_pub {
                             result += "pub ";
                         }
+                        let mut vars: HashMap<String, Variable> = HashMap::new();
+                        let round = self.transpile_round(ast.tokens[2].value.clone(), &mut vars);
                         result += format!(
                             "fn {}({}) -> {} {}",
                             ast.tokens[1].value,
-                            self.transpile_round(ast.tokens[2].value.clone(), variables.clone()),
+                            round,
                             ast.tokens[0].value,
-                            self.transpile(
-                                ast.tokens[3].value.clone(),
-                                indent + 1,
-                                variables.clone()
-                            )
+                            self.transpile(ast.tokens[3].value.clone(), indent + 1, vars)
                         )
                         .as_str();
                     } else if ast.ast_type == AstType::VoidFunctionDeceleration {
                         if self.auto_pub {
                             result += "pub ";
                         }
+                        let mut vars: HashMap<String, Variable> = HashMap::new();
+                        let round = self.transpile_round(ast.tokens[2].value.clone(), &mut vars);
+                        // panic!("{:?}", vars);
                         result += format!(
                             "fn {}({}) {}",
                             ast.tokens[1].value,
-                            self.transpile_round(ast.tokens[2].value.clone(), variables.clone()),
-                            self.transpile(
-                                ast.tokens[3].value.clone(),
-                                indent + 1,
-                                variables.clone()
-                            )
+                            round,
+                            self.transpile(ast.tokens[3].value.clone(), indent + 1, vars)
                         )
                         .as_str();
                     } else if ast.ast_type == AstType::StructDeceleration {
@@ -133,8 +130,11 @@ impl Transpiler {
                             "struct {} {} {}",
                             ast.tokens[0].value,
                             "{\n",
-                            self.transpile_round(ast.tokens[1].value.clone(), variables.clone())
-                                .trim_end()
+                            self.transpile_round(
+                                ast.tokens[1].value.clone(),
+                                &mut variables.clone()
+                            )
+                            .trim_end()
                         )
                         .replace(
                             "\n",
@@ -162,7 +162,10 @@ impl Transpiler {
                     {
                         result += format!(
                             "({})",
-                            self.transpile_round(ast.tokens[0].value.clone(), variables.clone())
+                            self.transpile_round(
+                                ast.tokens[0].value.clone(),
+                                &mut variables.clone()
+                            )
                         )
                         .as_str();
                     } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square
@@ -242,7 +245,10 @@ impl Transpiler {
                         result += format!(
                             "{} {} {}",
                             ast.tokens[0].value.clone(),
-                            self.transpile_round(ast.tokens[1].value.clone(), variables.clone()),
+                            self.transpile_round(
+                                ast.tokens[1].value.clone(),
+                                &mut variables.clone()
+                            ),
                             self.transpile(
                                 ast.tokens[2].value.clone(),
                                 indent + 1,
@@ -326,22 +332,7 @@ impl Transpiler {
                         }
                     }
                 }
-
                 result = result.trim_end().to_string();
-
-                // if self.var_match != "" && (self.state.line + input.len()) > self.var_state.line {
-                // for (name, var) in variables {
-                //     if (self.var_state.line > var.line
-                //         || (self.var_state.line == var.line
-                //             && self.var_state.column > var.column))
-                //         && name.to_lowercase().starts_with(&self.var_match)
-                //     {
-                //         self.matched_vars.insert(name, var);
-                //     }
-                // }
-                // self.var_match = String::new();
-                // }
-
                 if indent > 0 {
                     result += "\n";
                     result += " ".repeat((indent as usize - 1) * 2).as_str();
@@ -374,7 +365,7 @@ impl Transpiler {
     pub fn transpile_round(
         &mut self,
         input: String,
-        variables: HashMap<String, Variable>,
+        variables: &mut HashMap<String, Variable>,
     ) -> String {
         let mut result = String::new();
         let lexer_out = lex(input.as_str(), false, self.state);
@@ -386,7 +377,7 @@ impl Transpiler {
                     tokens: vec![],
                 };
                 for ast in full_ast.parse() {
-                    let variables = full_ast.variables.clone();
+                    *variables = full_ast.variables.clone();
                     if ast.ast_type == AstType::Other
                         && ast.tokens[0].token_type == TokenType::Identifier
                         && ast.tokens[0].value.contains(&self.peek)
@@ -435,7 +426,10 @@ impl Transpiler {
                     {
                         result += format!(
                             "({})",
-                            self.transpile_round(ast.tokens[0].value.clone(), variables.clone())
+                            self.transpile_round(
+                                ast.tokens[0].value.clone(),
+                                &mut variables.clone()
+                            )
                         )
                         .as_str();
                     } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square
@@ -553,7 +547,10 @@ impl Transpiler {
                     {
                         result += format!(
                             "({})",
-                            self.transpile_round(ast.tokens[0].value.clone(), variables.clone())
+                            self.transpile_round(
+                                ast.tokens[0].value.clone(),
+                                &mut variables.clone()
+                            )
                         )
                         .as_str();
                     } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square
@@ -670,7 +667,10 @@ impl Transpiler {
                     {
                         result += format!(
                             "({})",
-                            self.transpile_round(ast.tokens[0].value.clone(), variables.clone())
+                            self.transpile_round(
+                                ast.tokens[0].value.clone(),
+                                &mut variables.clone()
+                            )
                         )
                         .as_str();
                     } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square
