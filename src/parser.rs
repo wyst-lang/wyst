@@ -1,4 +1,7 @@
-use crate::lexer::{LexerState, Token, TokenType};
+use crate::{
+    lexer::{LexerState, Token, TokenType},
+    variable::{Variable, VariableType},
+};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{collections::HashMap, fmt};
@@ -67,23 +70,14 @@ pub struct Parser {
     pub json: bool,
 }
 
-#[derive(Clone, PartialEq, Debug)]
-pub enum VariableType {
-    Var,
-    Func,
-    Keyword,
-}
-
-#[derive(Clone, Debug)]
-pub struct Variable {
-    pub vtype: VariableType,
-    pub state: LexerState,
-}
-
 pub fn new_vars() -> HashMap<String, Variable> {
-    HashMap::from([
-        ("void".to_string(), Variable { vtype: VariableType::Keyword, state: LexerState {line:0,column:0}})
-    ])
+    HashMap::from([(
+        "void".to_string(),
+        Variable {
+            vtype: VariableType::Keyword,
+            state: LexerState { line: 0, column: 0 },
+        },
+    )])
 }
 
 impl Parser {
@@ -186,13 +180,16 @@ impl Parser {
                             } else {
                                 ast_res.ast_type = AstType::FunctionDeceleration;
                             }
-                            self.variables.insert(self.tokens[index + 1].clone().value, Variable {
-                                vtype: VariableType::Func,
-                                state: LexerState {
-                                    line: self.tokens[index + 1].clone().line,
-                                    column: self.tokens[index + 1].clone().column
-                                }
-                            });
+                            self.variables.insert(
+                                self.tokens[index + 1].clone().value,
+                                Variable {
+                                    vtype: VariableType::Func,
+                                    state: LexerState {
+                                        line: self.tokens[index + 1].clone().line,
+                                        column: self.tokens[index + 1].clone().column,
+                                    },
+                                },
+                            );
                             self.index += 3;
                         } else if self.tokens.len() - index > 1
                             && self.tokens[index + 1].token_type == TokenType::Curly
@@ -213,13 +210,16 @@ impl Parser {
                                 ast_res.tokens.push(self.tokens[index + 1].clone());
                                 ast_res.ast_type = AstType::VariableDeceleration;
                                 self.index += 1;
-                                self.variables.insert(self.tokens[index + 1].clone().value, Variable {
-                                    vtype: VariableType::Var,
-                                    state: LexerState {
-                                        line: self.tokens[index + 1].clone().line,
-                                        column: self.tokens[index + 1].clone().column
-                                    }
-                                });
+                                self.variables.insert(
+                                    self.tokens[index + 1].clone().value,
+                                    Variable {
+                                        vtype: VariableType::Var,
+                                        state: LexerState {
+                                            line: self.tokens[index + 1].clone().line,
+                                            column: self.tokens[index + 1].clone().column,
+                                        },
+                                    },
+                                );
                             } else if self.tokens.len() - index > 2
                                 && self.tokens[index + 2].token_type == TokenType::Identifier
                                 && self.tokens[index + 1].token_type == TokenType::Angle
@@ -230,13 +230,16 @@ impl Parser {
                                 ast_res.tokens[0].value += ">";
                                 ast_res.ast_type = AstType::VariableDeceleration;
                                 self.index += 2;
-                                self.variables.insert(self.tokens[index + 1].clone().value, Variable {
-                                    vtype: VariableType::Var,
-                                    state: LexerState {
-                                        line: self.tokens[index + 1].clone().line,
-                                        column: self.tokens[index + 1].clone().column
-                                    }
-                                });
+                                self.variables.insert(
+                                    self.tokens[index + 1].clone().value,
+                                    Variable {
+                                        vtype: VariableType::Var,
+                                        state: LexerState {
+                                            line: self.tokens[index + 1].clone().line,
+                                            column: self.tokens[index + 1].clone().column,
+                                        },
+                                    },
+                                );
                             } else if self.tokens.len() - index > 2
                                 && self.tokens[index + 1].value == "*"
                                 && self.tokens[index + 2].token_type == TokenType::Identifier
@@ -244,13 +247,16 @@ impl Parser {
                                 ast_res.tokens.push(self.tokens[index + 2].clone());
                                 ast_res.ast_type = AstType::PointerDeceleration;
                                 self.index += 2;
-                                self.variables.insert(self.tokens[index + 1].clone().value, Variable {
-                                    vtype: VariableType::Var,
-                                    state: LexerState {
-                                        line: self.tokens[index + 1].clone().line,
-                                        column: self.tokens[index + 1].clone().column
-                                    }
-                                });
+                                self.variables.insert(
+                                    self.tokens[index + 1].clone().value,
+                                    Variable {
+                                        vtype: VariableType::Var,
+                                        state: LexerState {
+                                            line: self.tokens[index + 1].clone().line,
+                                            column: self.tokens[index + 1].clone().column,
+                                        },
+                                    },
+                                );
                             }
                         }
                     }

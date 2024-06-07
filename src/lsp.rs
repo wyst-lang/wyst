@@ -1,6 +1,6 @@
 use crate::{
     lspcom::{get_completion, request_methods, LspServer, TextDocumentChangeParams},
-    parser::VariableType,
+    variable::VariableType,
 };
 use lsp_types::*;
 use once_cell::sync::Lazy;

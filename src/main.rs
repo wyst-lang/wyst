@@ -1,9 +1,10 @@
 mod compile;
 mod lexer;
 mod lsp;
+mod lspcom;
 mod parser;
 mod transpiler;
-mod lspcom;
+mod variable;
 use clap::Parser;
 use parser::new_vars;
 use std::{fs, path::Path};

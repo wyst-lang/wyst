@@ -1,5 +1,4 @@
-use crate::parser::{new_vars, Variable};
-use crate::transpiler::Transpiler;
+use crate::{parser::new_vars, transpiler::Transpiler, variable::Variable};
 use lsp_types::{CompletionParams, CompletionResponse, InitializeResult};
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
