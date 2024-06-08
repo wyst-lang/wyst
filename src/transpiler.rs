@@ -3,8 +3,8 @@ use crate::{
     parser::{new_vars, Ast, AstType, Parser},
     variable::{Variable, VariableType},
 };
-use std::fs;
 use std::collections::HashMap;
+use std::fs;
 
 #[derive(Debug, Clone)]
 pub struct Transpiler {
@@ -66,7 +66,9 @@ impl Transpiler {
                         let ctoken = &ast.tokens[0];
                         // let pname = ctoken.value.split(&self.peek).next().unwrap();
                         for (name, var) in variables.clone() {
-                            if ctoken.line > var.state.line || var.vtype != VariableType::Var {
+                            if (ctoken.line > var.state.line && var.vtype == VariableType::Var)
+                                || var.vtype != VariableType::Var
+                            {
                                 self.matched_vars.insert(name, var);
                             }
                         }
@@ -98,7 +100,7 @@ impl Transpiler {
                         if self.auto_pub {
                             result += "pub ";
                         }
-                        let mut vars: HashMap<String, Variable> = HashMap::new();
+                        let mut vars: HashMap<String, Variable> = variables;
                         let round = self.transpile_round(ast.tokens[2].value.clone(), &mut vars);
                         result += format!(
                             "fn {}({}) -> {} {}",
@@ -112,7 +114,7 @@ impl Transpiler {
                         if self.auto_pub {
                             result += "pub ";
                         }
-                        let mut vars: HashMap<String, Variable> = HashMap::new();
+                        let mut vars: HashMap<String, Variable> = variables;
                         let round = self.transpile_round(ast.tokens[2].value.clone(), &mut vars);
                         // panic!("{:?}", vars);
                         result += format!(
