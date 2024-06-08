@@ -1,6 +1,6 @@
 use crate::{
     lexer::{LexerState, Token, TokenType},
-    variable::{Variable, VariableType},
+    variable::Variable,
 };
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -73,7 +73,7 @@ pub struct Parser {
 pub fn new_vars() -> HashMap<String, Variable> {
     HashMap::from([(
         "void".to_string(),
-        Variable::new_var(VariableType::Keyword, LexerState { line: 0, column: 0 }),
+        Variable::new_keyword(LexerState { line: 0, column: 0 }, String::from("")),
     )])
 }
 
@@ -124,6 +124,20 @@ impl Parser {
                 ast_res.tokens.push(self.tokens[index + 2].clone());
                 ast_res.ast_type = AstType::StructDeceleration;
                 self.index += 2;
+                let mut desc = String::new();
+                if index > 0 && self.tokens[index - 1].token_type == TokenType::Comment {
+                    desc = self.tokens[index - 1].value.clone()
+                }
+                self.variables.insert(
+                    self.tokens[index + 1].clone().value,
+                    Variable::new_struct(
+                        LexerState {
+                            line: self.tokens[index + 1].clone().line,
+                            column: self.tokens[index + 1].clone().column,
+                        },
+                        desc,
+                    ),
+                );
             } else if self.tokens.len() - index > 2
                 && self.tokens[index].value == "namespace"
                 && self.tokens[index + 1].token_type == TokenType::Identifier
@@ -133,6 +147,20 @@ impl Parser {
                 ast_res.tokens.push(self.tokens[index + 2].clone());
                 ast_res.ast_type = AstType::Namespace;
                 self.index += 2;
+                let mut desc = String::new();
+                if index > 0 && self.tokens[index - 1].token_type == TokenType::Comment {
+                    desc = self.tokens[index - 1].value.clone()
+                }
+                self.variables.insert(
+                    self.tokens[index + 1].clone().value,
+                    Variable::new_namespace(
+                        LexerState {
+                            line: self.tokens[index + 1].clone().line,
+                            column: self.tokens[index + 1].clone().column,
+                        },
+                        desc,
+                    ),
+                );
             } else if self.tokens.len() - index > 2
                 && self.tokens[index].value == "impl"
                 && self.tokens[index + 1].token_type == TokenType::Identifier
@@ -177,17 +205,22 @@ impl Parser {
                             } else {
                                 ast_res.ast_type = AstType::FunctionDeceleration;
                             }
+                            self.index += 3;
+                            let mut desc = String::new();
+                            if index > 0 && self.tokens[index - 1].token_type == TokenType::Comment
+                            {
+                                desc = self.tokens[index - 1].value.clone()
+                            }
                             self.variables.insert(
                                 self.tokens[index + 1].clone().value,
                                 Variable::new_func(
-                                    VariableType::Func,
                                     LexerState {
                                         line: self.tokens[index + 1].clone().line,
                                         column: self.tokens[index + 1].clone().column,
                                     },
+                                    desc,
                                 ),
                             );
-                            self.index += 3;
                         } else if self.tokens.len() - index > 1
                             && self.tokens[index + 1].token_type == TokenType::Curly
                         {
@@ -202,19 +235,40 @@ impl Parser {
                             ast_res.tokens.push(self.tokens[index + 2].clone());
                             ast_res.ast_type = AstType::StructVar;
                             self.index += 2;
+                            let mut desc = String::new();
+                            if index > 0 && self.tokens[index - 1].token_type == TokenType::Comment
+                            {
+                                desc = self.tokens[index - 1].value.clone()
+                            }
+                            self.variables.insert(
+                                self.tokens[index + 1].clone().value,
+                                Variable::new_var(
+                                    LexerState {
+                                        line: self.tokens[index + 1].clone().line,
+                                        column: self.tokens[index + 1].clone().column,
+                                    },
+                                    desc,
+                                ),
+                            );
                         } else if self.tokens.len() - index > 1 {
                             if self.tokens[index + 1].token_type == TokenType::Identifier {
                                 ast_res.tokens.push(self.tokens[index + 1].clone());
                                 ast_res.ast_type = AstType::VariableDeceleration;
                                 self.index += 1;
+                                let mut desc = String::new();
+                                if index > 0
+                                    && self.tokens[index - 1].token_type == TokenType::Comment
+                                {
+                                    desc = self.tokens[index - 1].value.clone()
+                                }
                                 self.variables.insert(
                                     self.tokens[index + 1].clone().value,
                                     Variable::new_var(
-                                        VariableType::Var,
                                         LexerState {
                                             line: self.tokens[index + 1].clone().line,
                                             column: self.tokens[index + 1].clone().column,
                                         },
+                                        desc,
                                     ),
                                 );
                             } else if self.tokens.len() - index > 2
@@ -227,14 +281,20 @@ impl Parser {
                                 ast_res.tokens[0].value += ">";
                                 ast_res.ast_type = AstType::VariableDeceleration;
                                 self.index += 2;
+                                let mut desc = String::new();
+                                if index > 0
+                                    && self.tokens[index - 1].token_type == TokenType::Comment
+                                {
+                                    desc = self.tokens[index - 1].value.clone()
+                                }
                                 self.variables.insert(
                                     self.tokens[index + 1].clone().value,
                                     Variable::new_var(
-                                        VariableType::Var,
                                         LexerState {
                                             line: self.tokens[index + 1].clone().line,
                                             column: self.tokens[index + 1].clone().column,
                                         },
+                                        desc,
                                     ),
                                 );
                             } else if self.tokens.len() - index > 2
@@ -244,14 +304,20 @@ impl Parser {
                                 ast_res.tokens.push(self.tokens[index + 2].clone());
                                 ast_res.ast_type = AstType::PointerDeceleration;
                                 self.index += 2;
+                                let mut desc = String::new();
+                                if index > 0
+                                    && self.tokens[index - 1].token_type == TokenType::Comment
+                                {
+                                    desc = self.tokens[index - 1].value.clone()
+                                }
                                 self.variables.insert(
                                     self.tokens[index + 1].clone().value,
                                     Variable::new_var(
-                                        VariableType::Var,
                                         LexerState {
                                             line: self.tokens[index + 1].clone().line,
                                             column: self.tokens[index + 1].clone().column,
                                         },
+                                        desc,
                                     ),
                                 );
                             }

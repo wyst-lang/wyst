@@ -43,7 +43,7 @@ impl LspServer for Server {
         );
         let mut completion_items: Vec<CompletionItem> = Vec::new();
         for (name, var) in items {
-            let mut item = CompletionItem::new_simple(name, "mydetail".to_string());
+            let mut item = CompletionItem::new_simple(name, var.desc);
             match var.vtype {
                 VariableType::Func => {
                     item.kind = Some(CompletionItemKind::FUNCTION);
@@ -53,6 +53,12 @@ impl LspServer for Server {
                 }
                 VariableType::Keyword => {
                     item.kind = Some(CompletionItemKind::KEYWORD);
+                }
+                VariableType::Struct => {
+                    item.kind = Some(CompletionItemKind::STRUCT);
+                }
+                VariableType::Namespace => {
+                    item.kind = Some(CompletionItemKind::MODULE);
                 }
             }
             completion_items.push(item);
