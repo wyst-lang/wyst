@@ -40,7 +40,6 @@ impl Transpiler {
         indent: u32,
         variables: HashMap<String, Variable>,
     ) -> String {
-        let mut variables = variables;
         let mut result = String::new();
         if indent == 0 {
             // result += "type int = i32;\n";
@@ -56,8 +55,9 @@ impl Transpiler {
                     ast_type: AstType::Other,
                     tokens: vec![],
                 };
-                for ast in full_ast.parse() {
-                    variables = full_ast.variables.clone();
+                let f_ast = full_ast.parse();
+                let mut variables = full_ast.variables.clone();
+                for ast in f_ast {
                     if ast.ast_type == AstType::Other
                         && ast.tokens[0].token_type == TokenType::Identifier
                         && ast.tokens[0].value.contains(&self.peek)
@@ -100,43 +100,59 @@ impl Transpiler {
                         if self.auto_pub {
                             result += "pub ";
                         }
-                        let mut vars: HashMap<String, Variable> = variables;
+                        let mut vars: HashMap<String, Variable> = variables.clone();
                         let round = self.transpile_round(ast.tokens[2].value.clone(), &mut vars);
                         result += format!(
                             "fn {}({}) -> {} {}",
                             ast.tokens[1].value,
                             round,
                             ast.tokens[0].value,
-                            self.transpile(ast.tokens[3].value.clone(), indent + 1, vars)
+                            self.transpile(ast.tokens[3].value.clone(), indent + 1, vars.clone())
                         )
                         .as_str();
+                        for (name, var) in vars {
+                            if let Some(v) = variables.get_mut(&ast.tokens[0].value) {
+                                v.params.insert(
+                                    name,
+                                    Variable::new_var(LexerState { line: 0, column: 0 }, var.desc),
+                                );
+                                println!("{:?}", v);
+                            }
+                        }
                     } else if ast.ast_type == AstType::VoidFunctionDeceleration {
                         if self.auto_pub {
                             result += "pub ";
                         }
-                        let mut vars: HashMap<String, Variable> = variables;
+                        let mut vars: HashMap<String, Variable> = variables.clone();
                         let round = self.transpile_round(ast.tokens[2].value.clone(), &mut vars);
                         // panic!("{:?}", vars);
                         result += format!(
                             "fn {}({}) {}",
                             ast.tokens[1].value,
                             round,
-                            self.transpile(ast.tokens[3].value.clone(), indent + 1, vars)
+                            self.transpile(ast.tokens[3].value.clone(), indent + 1, vars.clone())
                         )
                         .as_str();
+                        for (name, var) in vars {
+                            if let Some(v) = variables.get_mut(&ast.tokens[0].value) {
+                                v.params.insert(
+                                    name,
+                                    Variable::new_var(LexerState { line: 0, column: 0 }, var.desc),
+                                );
+                                println!("{:?}", v);
+                            }
+                        }
                     } else if ast.ast_type == AstType::StructDeceleration {
                         if self.auto_pub {
                             result += "pub ";
                         }
+                        let mut vars: HashMap<String, Variable> = variables.clone();
+                        let round = self.transpile_round(ast.tokens[1].value.clone(), &mut vars);
                         result += format!(
                             "struct {} {} {}",
                             ast.tokens[0].value,
                             "{\n",
-                            self.transpile_round(
-                                ast.tokens[1].value.clone(),
-                                &mut variables.clone()
-                            )
-                            .trim_end()
+                            round.trim_end()
                         )
                         .replace(
                             "\n",
@@ -145,6 +161,15 @@ impl Transpiler {
                         )
                         .as_str();
                         result += "\n}\n";
+                        for (name, var) in vars {
+                            if let Some(v) = variables.get_mut(&ast.tokens[0].value) {
+                                v.params.insert(
+                                    name,
+                                    Variable::new_var(LexerState { line: 0, column: 0 }, var.desc),
+                                );
+                                println!("{:?}", v);
+                            }
+                        }
                     } else if ast.ast_type == AstType::VariableDeceleration {
                         if self.clone().auto_mut {
                             result +=
