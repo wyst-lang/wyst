@@ -110,13 +110,18 @@ impl Transpiler {
                             self.transpile(ast.tokens[3].value.clone(), indent + 1, vars.clone())
                         )
                         .as_str();
-                        for (name, var) in vars {
-                            if let Some(v) = variables.get_mut(&ast.tokens[0].value) {
-                                v.params.insert(
-                                    name,
-                                    Variable::new_var(LexerState { line: 0, column: 0 }, var.desc),
-                                );
-                                println!("{:?}", v);
+                        let vvars = variables.clone();
+                        if let Some(v) = variables.get_mut(&ast.tokens[1].value) {
+                            for (name, var) in vars {
+                                if !(vvars.contains_key(&name)) {
+                                    v.params.insert(
+                                        name,
+                                        Variable::new_var(
+                                            LexerState { line: 0, column: 0 },
+                                            var.desc,
+                                        ),
+                                    );
+                                }
                             }
                         }
                     } else if ast.ast_type == AstType::VoidFunctionDeceleration {
@@ -133,13 +138,18 @@ impl Transpiler {
                             self.transpile(ast.tokens[3].value.clone(), indent + 1, vars.clone())
                         )
                         .as_str();
-                        for (name, var) in vars {
-                            if let Some(v) = variables.get_mut(&ast.tokens[0].value) {
-                                v.params.insert(
-                                    name,
-                                    Variable::new_var(LexerState { line: 0, column: 0 }, var.desc),
-                                );
-                                println!("{:?}", v);
+                        let vvars = variables.clone();
+                        if let Some(v) = variables.get_mut(&ast.tokens[1].value) {
+                            for (name, var) in vars {
+                                if !(vvars.contains_key(&name)) {
+                                    v.params.insert(
+                                        name,
+                                        Variable::new_var(
+                                            LexerState { line: 0, column: 0 },
+                                            var.desc,
+                                        ),
+                                    );
+                                }
                             }
                         }
                     } else if ast.ast_type == AstType::StructDeceleration {
@@ -161,13 +171,18 @@ impl Transpiler {
                         )
                         .as_str();
                         result += "\n}\n";
-                        for (name, var) in vars {
-                            if let Some(v) = variables.get_mut(&ast.tokens[0].value) {
-                                v.params.insert(
-                                    name,
-                                    Variable::new_var(LexerState { line: 0, column: 0 }, var.desc),
-                                );
-                                println!("{:?}", v);
+                        let vvars = variables.clone();
+                        if let Some(v) = variables.get_mut(&ast.tokens[1].value) {
+                            for (name, var) in vars {
+                                if !(vvars.contains_key(&name)) {
+                                    v.params.insert(
+                                        name,
+                                        Variable::new_var(
+                                            LexerState { line: 0, column: 0 },
+                                            var.desc,
+                                        ),
+                                    );
+                                }
                             }
                         }
                     } else if ast.ast_type == AstType::VariableDeceleration {
