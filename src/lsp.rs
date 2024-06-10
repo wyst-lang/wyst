@@ -1,7 +1,4 @@
-use crate::{
-    lspcom::{get_completion, request_methods, LspServer, TextDocumentChangeParams},
-    variable::VariableType,
-};
+use crate::lspcom::{get_completion, get_items, request_methods, LspServer, TextDocumentChangeParams};
 use lsp_types::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -36,34 +33,12 @@ impl LspServer for Server {
             .documents
             .get(params.text_document_position.text_document.uri.as_str())
             .expect("err_textdoc");
-        let items = get_completion(
+        let items: HashMap<String, crate::variable::Variable> = get_completion(
             text.clone(),
             params.text_document_position.position.line as usize + 1,
             params.text_document_position.position.character as usize,
         );
-        let mut completion_items: Vec<CompletionItem> = Vec::new();
-        for (name, var) in items {
-            let mut item = CompletionItem::new_simple(name, var.desc);
-            match var.vtype {
-                VariableType::Func => {
-                    item.kind = Some(CompletionItemKind::FUNCTION);
-                }
-                VariableType::Var => {
-                    item.kind = Some(CompletionItemKind::VARIABLE);
-                }
-                VariableType::Keyword => {
-                    item.kind = Some(CompletionItemKind::KEYWORD);
-                }
-                VariableType::Struct => {
-                    item.kind = Some(CompletionItemKind::STRUCT);
-                }
-                VariableType::Namespace => {
-                    item.kind = Some(CompletionItemKind::MODULE);
-                }
-            }
-            completion_items.push(item);
-        }
-        CompletionResponse::Array(completion_items)
+        CompletionResponse::Array(get_items(items, "".to_string()))
     }
     fn did_change(&mut self, params: TextDocumentChangeParams) {
         self.documents.insert(params.uri, params.text);

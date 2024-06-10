@@ -172,7 +172,7 @@ impl Transpiler {
                         .as_str();
                         result += "\n}\n";
                         let vvars = variables.clone();
-                        if let Some(v) = variables.get_mut(&ast.tokens[1].value) {
+                        if let Some(v) = variables.get_mut(&ast.tokens[0].value) {
                             for (name, var) in vars {
                                 if !(vvars.contains_key(&name)) {
                                     v.params.insert(

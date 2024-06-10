@@ -1,5 +1,11 @@
-use crate::{parser::new_vars, transpiler::Transpiler, variable::Variable};
-use lsp_types::{CompletionParams, CompletionResponse, InitializeResult};
+use crate::{
+    parser::new_vars,
+    transpiler::Transpiler,
+    variable::{Variable, VariableType},
+};
+use lsp_types::{
+    CompletionItem, CompletionItemKind, CompletionParams, CompletionResponse, InitializeResult,
+};
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -55,4 +61,41 @@ pub trait LspServer {
 pub struct TextDocumentChangeParams {
     pub uri: String,
     pub text: String,
+}
+
+pub fn get_items(
+    items: HashMap<String, crate::variable::Variable>,
+    lname: String,
+) -> Vec<CompletionItem> {
+    let mut completion_items: Vec<CompletionItem> = Vec::new();
+    for (name, var) in items {
+        let mut item = CompletionItem::new_simple(lname.clone() + &name, var.desc);
+        if var.vtype != VariableType::Func {
+            completion_items.extend(get_items(var.params, name + "::").iter().cloned())
+        } else {
+            // item.documentation = Some(Documentation::MarkupContent(MarkupContent {
+            //     kind: MarkupKind::Markdown,
+            //     value: "Markup".to_string(),
+            // }));
+        }
+        match var.vtype {
+            VariableType::Func => {
+                item.kind = Some(CompletionItemKind::FUNCTION);
+            }
+            VariableType::Var => {
+                item.kind = Some(CompletionItemKind::VARIABLE);
+            }
+            VariableType::Keyword => {
+                item.kind = Some(CompletionItemKind::KEYWORD);
+            }
+            VariableType::Struct => {
+                item.kind = Some(CompletionItemKind::STRUCT);
+            }
+            VariableType::Namespace => {
+                item.kind = Some(CompletionItemKind::MODULE);
+            }
+        }
+        completion_items.push(item);
+    }
+    completion_items
 }
