@@ -1,14 +1,12 @@
 use crate::{
-    parser::new_vars,
     transpiler::Transpiler,
-    variable::{Variable, VariableType},
+    variable::{VariableType, Variables},
 };
 use lsp_types::{
     CompletionItem, CompletionItemKind, CompletionParams, CompletionResponse, InitializeResult,
 };
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 pub fn place_at(input: String, in2: String, line_goal: usize, column_goal: usize) -> String {
     let mut line: usize = 1;
@@ -28,14 +26,14 @@ pub fn place_at(input: String, in2: String, line_goal: usize, column_goal: usize
     out
 }
 
-pub fn get_completion(input: String, line: usize, column: usize) -> HashMap<String, Variable> {
+pub fn get_completion(input: String, line: usize, column: usize) -> Variables {
     let rand_id: u32 = thread_rng().gen();
     let rand_id: String = rand_id.to_string();
     let mut transpiler = Transpiler {
         peek: rand_id.clone(),
         ..Default::default()
     };
-    transpiler.transpile(place_at(input, rand_id, line, column), 0, new_vars());
+    transpiler.transpile(place_at(input, rand_id, line, column), 0, Variables::new());
     transpiler.matched_vars
 }
 
@@ -63,15 +61,16 @@ pub struct TextDocumentChangeParams {
     pub text: String,
 }
 
-pub fn get_items(
-    items: HashMap<String, crate::variable::Variable>,
-    lname: String,
-) -> Vec<CompletionItem> {
+pub fn get_items(mut items: Variables, lname: String) -> Vec<CompletionItem> {
     let mut completion_items: Vec<CompletionItem> = Vec::new();
-    for (name, var) in items {
-        let mut item = CompletionItem::new_simple(lname.clone() + &name, var.desc);
+    for (name, var) in items.iter_mut() {
+        let mut item = CompletionItem::new_simple(lname.clone() + &name, var.desc.clone());
         if var.vtype != VariableType::Func {
-            completion_items.extend(get_items(var.params, name + "::").iter().cloned())
+            completion_items.extend(
+                get_items(var.params.clone(), name.to_owned() + "::")
+                    .iter()
+                    .cloned(),
+            )
         } else {
             // item.documentation = Some(Documentation::MarkupContent(MarkupContent {
             //     kind: MarkupKind::Markdown,
@@ -98,4 +97,16 @@ pub fn get_items(
         completion_items.push(item);
     }
     completion_items
+}
+
+#[derive(Clone, Debug)]
+pub enum ProblemType {
+    VariableNotFound,
+}
+
+#[derive(Clone, Debug)]
+pub struct Problem {
+    pub code: u32,
+    pub problem_type: ProblemType,
+    pub problem_msg: String,
 }

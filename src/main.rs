@@ -6,9 +6,9 @@ mod parser;
 mod transpiler;
 mod variable;
 use clap::Parser;
-use parser::new_vars;
 use std::{fs, path::Path};
 use transpiler::Transpiler;
+use variable::Variables;
 
 use crate::lsp::run_lsp_server;
 
@@ -38,7 +38,10 @@ fn main() {
             }
             fs::create_dir("build").expect("error making build");
             let mut trsp = Transpiler::default();
-            let transpiled_code = trsp.transpile(file_content, 0, new_vars());
+            let transpiled_code = trsp.transpile(file_content, 0, Variables::new());
+            for problem in trsp.problems {
+                println!("{}", problem.problem_msg)
+            }
 
             match args.rust {
                 Some(ref rust_file_name) => {

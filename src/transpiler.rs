@@ -1,9 +1,10 @@
 use crate::{
     lexer::{lex, LexerState, TokenType},
-    parser::{new_vars, Ast, AstType, Parser},
-    variable::{Variable, VariableType},
+    lspcom::Problem,
+    parser::{is_decl, Ast, AstType, Parser},
+    variable::{VariableType, Variables},
 };
-use std::collections::HashMap;
+
 use std::fs;
 
 #[derive(Debug, Clone)]
@@ -15,7 +16,8 @@ pub struct Transpiler {
     pub macros: Vec<String>,
     pub modnum: u32,
     pub peek: String,
-    pub matched_vars: HashMap<String, Variable>,
+    pub matched_vars: Variables,
+    pub problems: Vec<Problem>,
 }
 
 impl Default for Transpiler {
@@ -28,18 +30,14 @@ impl Default for Transpiler {
             macros: vec![String::from("println")],
             modnum: 0,
             peek: String::new(),
-            matched_vars: HashMap::new(),
+            matched_vars: Variables::new(),
+            problems: Vec::new(),
         }
     }
 }
 
 impl Transpiler {
-    pub fn transpile(
-        &mut self,
-        input: String,
-        indent: u32,
-        variables: HashMap<String, Variable>,
-    ) -> String {
+    pub fn transpile(&mut self, input: String, indent: u32, variables: Variables) -> String {
         let mut result = String::new();
         if indent == 0 {
             // result += "type int = i32;\n";
@@ -58,6 +56,7 @@ impl Transpiler {
                 let f_ast = full_ast.parse();
                 let mut variables = full_ast.variables.clone();
                 for ast in f_ast {
+                    let mut ast = ast;
                     if ast.ast_type == AstType::Other
                         && ast.tokens[0].token_type == TokenType::Identifier
                         && ast.tokens[0].value.contains(&self.peek)
@@ -65,15 +64,28 @@ impl Transpiler {
                     {
                         let ctoken = &ast.tokens[0];
                         // let pname = ctoken.value.split(&self.peek).next().unwrap();
-                        for (name, var) in variables.clone() {
+                        for (name, var) in variables.clone().iter_mut() {
                             if (ctoken.line > var.state.line && var.vtype == VariableType::Var)
                                 || var.vtype != VariableType::Var
                             {
-                                self.matched_vars.insert(name, var);
+                                self.matched_vars.add(
+                                    var.vtype.clone(),
+                                    name.to_string(),
+                                    var.state,
+                                    var.desc.clone(),
+                                );
                             }
                         }
                         self.peek = String::new();
                         continue;
+                    } else {
+                        for i in (if is_decl(&ast) { 1 } else { 0 })..ast.tokens.len() {
+                            if ast.tokens[i].token_type == TokenType::Identifier {
+                                if ast.tokens[i].value.contains(&self.peek) && self.peek != "" {}
+                                let x = variables.get_var(ast.tokens[i].value.clone(), self);
+                                ast.tokens[i].value = x;
+                            }
+                        }
                     }
                     if last_ast.tokens.len() > 0 {
                         let mut fl = 0;
@@ -100,7 +112,7 @@ impl Transpiler {
                         if self.auto_pub {
                             result += "pub ";
                         }
-                        let mut vars: HashMap<String, Variable> = variables.clone();
+                        let mut vars: Variables = variables.clone();
                         let round = self.transpile_round(ast.tokens[2].value.clone(), &mut vars);
                         result += format!(
                             "fn {}({}) -> {} {}",
@@ -110,27 +122,12 @@ impl Transpiler {
                             self.transpile(ast.tokens[3].value.clone(), indent + 1, vars.clone())
                         )
                         .as_str();
-                        let vvars = variables.clone();
-                        if let Some(v) = variables.get_mut(&ast.tokens[1].value) {
-                            for (name, var) in vars {
-                                if !(vvars.contains_key(&name)) {
-                                    v.params.insert(
-                                        name,
-                                        Variable::new_var(
-                                            LexerState { line: 0, column: 0 },
-                                            var.desc,
-                                        ),
-                                    );
-                                }
-                            }
-                        }
                     } else if ast.ast_type == AstType::VoidFunctionDeceleration {
                         if self.auto_pub {
                             result += "pub ";
                         }
-                        let mut vars: HashMap<String, Variable> = variables.clone();
+                        let mut vars: Variables = variables.clone();
                         let round = self.transpile_round(ast.tokens[2].value.clone(), &mut vars);
-                        // panic!("{:?}", vars);
                         result += format!(
                             "fn {}({}) {}",
                             ast.tokens[1].value,
@@ -138,25 +135,11 @@ impl Transpiler {
                             self.transpile(ast.tokens[3].value.clone(), indent + 1, vars.clone())
                         )
                         .as_str();
-                        let vvars = variables.clone();
-                        if let Some(v) = variables.get_mut(&ast.tokens[1].value) {
-                            for (name, var) in vars {
-                                if !(vvars.contains_key(&name)) {
-                                    v.params.insert(
-                                        name,
-                                        Variable::new_var(
-                                            LexerState { line: 0, column: 0 },
-                                            var.desc,
-                                        ),
-                                    );
-                                }
-                            }
-                        }
                     } else if ast.ast_type == AstType::StructDeceleration {
                         if self.auto_pub {
                             result += "pub ";
                         }
-                        let mut vars: HashMap<String, Variable> = variables.clone();
+                        let mut vars: Variables = variables.clone();
                         let round = self.transpile_round(ast.tokens[1].value.clone(), &mut vars);
                         result += format!(
                             "struct {} {} {}",
@@ -172,15 +155,13 @@ impl Transpiler {
                         .as_str();
                         result += "\n}\n";
                         let vvars = variables.clone();
-                        if let Some(v) = variables.get_mut(&ast.tokens[0].value) {
-                            for (name, var) in vars {
-                                if !(vvars.contains_key(&name)) {
-                                    v.params.insert(
-                                        name,
-                                        Variable::new_var(
-                                            LexerState { line: 0, column: 0 },
-                                            var.desc,
-                                        ),
+                        if let Some(v) = variables.get_mut(ast.tokens[0].value.clone()) {
+                            for (name, var) in vars.iter_mut() {
+                                if !(vvars.vars.contains_key(name)) {
+                                    v.params.new_var(
+                                        name.to_string(),
+                                        LexerState { line: 0, column: 0 },
+                                        var.desc.clone(),
                                     );
                                 }
                             }
@@ -210,6 +191,11 @@ impl Transpiler {
                             )
                         )
                         .as_str();
+                    } else if ast.ast_type == AstType::Other
+                        && ast.tokens[0].token_type == TokenType::Comment
+                    {
+                        result += ast.tokens[0].value.clone().as_str();
+                        result += " ".repeat((indent as usize) * 2).as_str();
                     } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Square
                     {
                         result += format!(
@@ -230,12 +216,6 @@ impl Transpiler {
                         result += "}";
                     } else if ast.tokens.len() == 1 && ast.tokens[0].token_type == TokenType::Curly
                     {
-                        // if ast.tokens[0].token_type == TokenType::Newline {
-                        //     result += (ast.tokens[0].value.as_str().to_owned()
-                        //         + (" ".repeat((indent as usize) * 2).as_str()))
-                        //     .as_str();
-                        // } else {
-                        // result += ast.tokens[0].value.as_str();
                         result += self
                             .transpile_json(
                                 ast.tokens[0].value.as_str().to_string(),
@@ -341,6 +321,9 @@ impl Transpiler {
                             )
                             .as_str();
                         }
+                    } else if ast.ast_type == AstType::Ref {
+                        result += "&mut ";
+                        result += ast.tokens[0].value.as_str();
                     }
                     // flp
                     else {
@@ -352,17 +335,6 @@ impl Transpiler {
                             result += ";\n";
                             result += " ".repeat((indent as usize) * 2).as_str();
                         } else {
-                            // if last_ast.tokens.len() > 0 && (
-                            // last_ast.tokens[last_ast.tokens.len()-1].token_type == TokenType::Identifier ||
-                            // last_ast.tokens[last_ast.tokens.len()-1].token_type == TokenType::Keyword ||
-                            // last_ast.tokens[last_ast.tokens.len()-1].token_type == TokenType::Number
-                            // ) {
-                            // let ltkn = last_ast.tokens[last_ast.tokens.len()-1].token_type;
-                            // if ltkn == TokenType::Identifier ||
-                            // ltkn == TokenType::Keyword ||
-                            // ltkn == TokenType::Number {
-                            // }
-                            // }
                             result += ast.tokens[0].value.as_str();
                             if self.auto_macro
                                 && self
@@ -396,7 +368,7 @@ impl Transpiler {
             self.clone().modnum
         );
         let file_content = fs::read_to_string(s.to_string() + modfile).expect("Error reading file");
-        let transpiled_code = self.transpile(file_content, 0, new_vars());
+        let transpiled_code = self.transpile(file_content, 0, Variables::new());
         fs::write(
             ("build/".to_string() + modname.as_str()) + ".rs",
             transpiled_code,
@@ -404,11 +376,7 @@ impl Transpiler {
         .expect("Error writing file");
         modname
     }
-    pub fn transpile_round(
-        &mut self,
-        input: String,
-        variables: &mut HashMap<String, Variable>,
-    ) -> String {
+    pub fn transpile_round(&mut self, input: String, variables: &mut Variables) -> String {
         let mut result = String::new();
         let lexer_out = lex(input.as_str(), false, self.state);
         match lexer_out {
@@ -418,8 +386,10 @@ impl Transpiler {
                     ast_type: AstType::Other,
                     tokens: vec![],
                 };
-                for ast in full_ast.parse() {
-                    *variables = full_ast.variables.clone();
+                let fast = full_ast.parse();
+                *variables = full_ast.variables.clone();
+                for ast in fast {
+                    let mut ast = ast;
                     if ast.ast_type == AstType::Other
                         && ast.tokens[0].token_type == TokenType::Identifier
                         && ast.tokens[0].value.contains(&self.peek)
@@ -427,9 +397,44 @@ impl Transpiler {
                     {
                         let ctoken = &ast.tokens[0];
                         // let pname = ctoken.value.split(&self.peek).next().unwrap();
-                        for (name, var) in variables.clone() {
+                        for (name, var) in variables.clone().iter_mut() {
+                            if (ctoken.line > var.state.line && var.vtype == VariableType::Var)
+                                || var.vtype != VariableType::Var
+                            {
+                                self.matched_vars.add(
+                                    var.vtype.clone(),
+                                    name.to_string(),
+                                    var.state,
+                                    var.desc.clone(),
+                                );
+                            }
+                        }
+                        self.peek = String::new();
+                        continue;
+                    } else {
+                        for i in (if is_decl(&ast) { 1 } else { 0 })..ast.tokens.len() {
+                            if ast.tokens[i].token_type == TokenType::Identifier {
+                                if ast.tokens[i].value.contains(&self.peek) && self.peek != "" {}
+                                let x = variables.get_var(ast.tokens[i].value.clone(), self);
+                                ast.tokens[i].value = x;
+                            }
+                        }
+                    }
+                    if ast.ast_type == AstType::Other
+                        && ast.tokens[0].token_type == TokenType::Identifier
+                        && ast.tokens[0].value.contains(&self.peek)
+                        && self.peek != ""
+                    {
+                        let ctoken = &ast.tokens[0];
+                        // let pname = ctoken.value.split(&self.peek).next().unwrap();
+                        for (name, var) in variables.clone().iter_mut() {
                             if ctoken.line > var.state.line || var.vtype != VariableType::Var {
-                                self.matched_vars.insert(name, var);
+                                self.matched_vars.add(
+                                    var.vtype.clone(),
+                                    name.to_string(),
+                                    var.state,
+                                    var.desc.clone(),
+                                );
                             }
                         }
                         self.peek = String::new();
@@ -530,7 +535,7 @@ impl Transpiler {
         &mut self,
         input: String,
         state: LexerState,
-        variables: HashMap<String, Variable>,
+        variables: Variables,
     ) -> String {
         let mut result = String::new();
         let lexer_out = lex(input.as_str(), false, state);
@@ -541,8 +546,10 @@ impl Transpiler {
                     ast_type: AstType::Other,
                     tokens: vec![],
                 };
-                for ast in full_ast.parse() {
-                    let variables = full_ast.variables.clone();
+                let fast = full_ast.parse();
+                let mut variables = full_ast.variables.clone();
+                for ast in fast {
+                    let mut ast = ast;
                     if ast.ast_type == AstType::Other
                         && ast.tokens[0].token_type == TokenType::Identifier
                         && ast.tokens[0].value.contains(&self.peek)
@@ -550,9 +557,44 @@ impl Transpiler {
                     {
                         let ctoken = &ast.tokens[0];
                         // let pname = ctoken.value.split(&self.peek).next().unwrap();
-                        for (name, var) in variables.clone() {
+                        for (name, var) in variables.clone().iter_mut() {
+                            if (ctoken.line > var.state.line && var.vtype == VariableType::Var)
+                                || var.vtype != VariableType::Var
+                            {
+                                self.matched_vars.add(
+                                    var.vtype.clone(),
+                                    name.to_string(),
+                                    var.state,
+                                    var.desc.clone(),
+                                );
+                            }
+                        }
+                        self.peek = String::new();
+                        continue;
+                    } else {
+                        for i in (if is_decl(&ast) { 1 } else { 0 })..ast.tokens.len() {
+                            if ast.tokens[i].token_type == TokenType::Identifier {
+                                if ast.tokens[i].value.contains(&self.peek) && self.peek != "" {}
+                                let x = variables.get_var(ast.tokens[i].value.clone(), self);
+                                ast.tokens[i].value = x;
+                            }
+                        }
+                    }
+                    if ast.ast_type == AstType::Other
+                        && ast.tokens[0].token_type == TokenType::Identifier
+                        && ast.tokens[0].value.contains(&self.peek)
+                        && self.peek != ""
+                    {
+                        let ctoken = &ast.tokens[0];
+                        // let pname = ctoken.value.split(&self.peek).next().unwrap();
+                        for (name, var) in variables.iter_mut() {
                             if ctoken.line > var.state.line || var.vtype != VariableType::Var {
-                                self.matched_vars.insert(name, var);
+                                self.matched_vars.add(
+                                    var.vtype.clone(),
+                                    name.to_string(),
+                                    var.state,
+                                    var.desc.clone(),
+                                );
                             }
                         }
                         self.peek = String::new();
@@ -628,6 +670,9 @@ impl Transpiler {
                         result += " {";
                         result += ast.tokens[1].value.as_str();
                         result += "}";
+                    } else if ast.ast_type == AstType::Ref {
+                        result += "&mut ";
+                        result += ast.tokens[0].value.as_str();
                     }
                     // flp
                     else {
@@ -648,7 +693,7 @@ impl Transpiler {
         &mut self,
         input: String,
         state: LexerState,
-        variables: HashMap<String, Variable>,
+        variables: Variables,
     ) -> String {
         let mut result = String::new();
         let lexer_out = lex(input.as_str(), false, state);
@@ -661,8 +706,10 @@ impl Transpiler {
                     ast_type: AstType::Other,
                     tokens: vec![],
                 };
-                for ast in full_ast.parse() {
-                    let variables = full_ast.variables.clone();
+                let fast = full_ast.parse();
+                let mut variables = full_ast.variables.clone();
+                for ast in fast {
+                    let mut ast = ast;
                     if ast.ast_type == AstType::Other
                         && ast.tokens[0].token_type == TokenType::Identifier
                         && ast.tokens[0].value.contains(&self.peek)
@@ -670,9 +717,44 @@ impl Transpiler {
                     {
                         let ctoken = &ast.tokens[0];
                         // let pname = ctoken.value.split(&self.peek).next().unwrap();
-                        for (name, var) in variables.clone() {
+                        for (name, var) in variables.clone().iter_mut() {
+                            if (ctoken.line > var.state.line && var.vtype == VariableType::Var)
+                                || var.vtype != VariableType::Var
+                            {
+                                self.matched_vars.add(
+                                    var.vtype.clone(),
+                                    name.to_string(),
+                                    var.state,
+                                    var.desc.clone(),
+                                );
+                            }
+                        }
+                        self.peek = String::new();
+                        continue;
+                    } else {
+                        for i in (if is_decl(&ast) { 1 } else { 0 })..ast.tokens.len() {
+                            if ast.tokens[i].token_type == TokenType::Identifier {
+                                if ast.tokens[i].value.contains(&self.peek) && self.peek != "" {}
+                                let x = variables.get_var(ast.tokens[i].value.clone(), self);
+                                ast.tokens[i].value = x;
+                            }
+                        }
+                    }
+                    if ast.ast_type == AstType::Other
+                        && ast.tokens[0].token_type == TokenType::Identifier
+                        && ast.tokens[0].value.contains(&self.peek)
+                        && self.peek != ""
+                    {
+                        let ctoken = &ast.tokens[0];
+                        // let pname = ctoken.value.split(&self.peek).next().unwrap();
+                        for (name, var) in variables.iter_mut() {
                             if ctoken.line > var.state.line || var.vtype != VariableType::Var {
-                                self.matched_vars.insert(name, var);
+                                self.matched_vars.add(
+                                    var.vtype.clone(),
+                                    name.to_string(),
+                                    var.state,
+                                    var.desc.clone(),
+                                );
                             }
                         }
                         self.peek = String::new();
@@ -741,6 +823,9 @@ impl Transpiler {
                                 variables.clone(),
                             )
                             .as_str();
+                    } else if ast.ast_type == AstType::Ref {
+                        result += "&mut ";
+                        result += ast.tokens[0].value.as_str();
                     } else {
                         result += ast.tokens[0].value.as_str();
                     }
@@ -755,16 +840,3 @@ impl Transpiler {
         }
     }
 }
-
-// fn clean_incl(input: &str) -> String {
-//     input
-//         .chars()
-//         .map(|c| {
-//             if c.is_alphanumeric() || c == '_' {
-//                 c
-//             } else {
-//                 '_'
-//             }
-//         })
-//         .collect()
-// }

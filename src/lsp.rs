@@ -1,4 +1,7 @@
-use crate::lspcom::{get_completion, get_items, request_methods, LspServer, TextDocumentChangeParams};
+use crate::{
+    lspcom::{get_completion, get_items, request_methods, LspServer, TextDocumentChangeParams},
+    variable::Variables,
+};
 use lsp_types::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -33,7 +36,7 @@ impl LspServer for Server {
             .documents
             .get(params.text_document_position.text_document.uri.as_str())
             .expect("err_textdoc");
-        let items: HashMap<String, crate::variable::Variable> = get_completion(
+        let items: Variables = get_completion(
             text.clone(),
             params.text_document_position.position.line as usize + 1,
             params.text_document_position.position.character as usize,

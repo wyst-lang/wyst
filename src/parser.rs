@@ -1,10 +1,10 @@
 use crate::{
     lexer::{LexerState, Token, TokenType},
-    variable::Variable,
+    variable::Variables,
 };
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::{collections::HashMap, fmt};
+use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AstType {
@@ -26,6 +26,16 @@ pub enum AstType {
     Json,
     Impl,
     Other,
+}
+
+pub fn is_decl(ast: &Ast) -> bool {
+    ast.ast_type == AstType::FunctionDeceleration
+        || ast.ast_type == AstType::VoidFunctionDeceleration
+        || ast.ast_type == AstType::Namespace
+        || ast.ast_type == AstType::VariableDeceleration
+        || ast.ast_type == AstType::PointerDeceleration
+        || ast.ast_type == AstType::MutVariableDeceleration
+        || ast.ast_type == AstType::StructDeceleration
 }
 
 pub struct Ast {
@@ -66,19 +76,12 @@ pub struct Parser {
     pub index: u32,
     pub include_regex: Lazy<Regex>,
     pub include_regex_local: Lazy<Regex>,
-    pub variables: HashMap<String, Variable>,
+    pub variables: Variables,
     pub json: bool,
 }
 
-pub fn new_vars() -> HashMap<String, Variable> {
-    HashMap::from([(
-        "void".to_string(),
-        Variable::new_keyword(LexerState { line: 0, column: 0 }, String::from("")),
-    )])
-}
-
 impl Parser {
-    pub fn new(tokens: Vec<Token>, variables: HashMap<String, Variable>) -> Parser {
+    pub fn new(tokens: Vec<Token>, variables: Variables) -> Parser {
         Parser {
             tokens: tokens,
             index: 0,
@@ -128,15 +131,13 @@ impl Parser {
                 if index > 0 && self.tokens[index - 1].token_type == TokenType::Comment {
                     desc = self.tokens[index - 1].value.clone()
                 }
-                self.variables.insert(
+                self.variables.new_struct(
                     self.tokens[index + 1].clone().value,
-                    Variable::new_struct(
-                        LexerState {
-                            line: self.tokens[index + 1].clone().line,
-                            column: self.tokens[index + 1].clone().column,
-                        },
-                        desc,
-                    ),
+                    LexerState {
+                        line: self.tokens[index + 1].clone().line,
+                        column: self.tokens[index + 1].clone().column,
+                    },
+                    desc,
                 );
             } else if self.tokens.len() - index > 2
                 && self.tokens[index].value == "namespace"
@@ -151,15 +152,13 @@ impl Parser {
                 if index > 0 && self.tokens[index - 1].token_type == TokenType::Comment {
                     desc = self.tokens[index - 1].value.clone()
                 }
-                self.variables.insert(
+                self.variables.new_namespace(
                     self.tokens[index + 1].clone().value,
-                    Variable::new_namespace(
-                        LexerState {
-                            line: self.tokens[index + 1].clone().line,
-                            column: self.tokens[index + 1].clone().column,
-                        },
-                        desc,
-                    ),
+                    LexerState {
+                        line: self.tokens[index + 1].clone().line,
+                        column: self.tokens[index + 1].clone().column,
+                    },
+                    desc,
                 );
             } else if self.tokens.len() - index > 2
                 && self.tokens[index].value == "impl"
@@ -211,15 +210,13 @@ impl Parser {
                             {
                                 desc = self.tokens[index - 1].value.clone()
                             }
-                            self.variables.insert(
+                            self.variables.new_func(
                                 self.tokens[index + 1].clone().value,
-                                Variable::new_func(
-                                    LexerState {
-                                        line: self.tokens[index + 1].clone().line,
-                                        column: self.tokens[index + 1].clone().column,
-                                    },
-                                    desc,
-                                ),
+                                LexerState {
+                                    line: self.tokens[index + 1].clone().line,
+                                    column: self.tokens[index + 1].clone().column,
+                                },
+                                desc,
                             );
                         } else if self.tokens.len() - index > 1
                             && self.tokens[index + 1].token_type == TokenType::Curly
@@ -240,15 +237,13 @@ impl Parser {
                             {
                                 desc = self.tokens[index - 1].value.clone()
                             }
-                            self.variables.insert(
+                            self.variables.new_var(
                                 self.tokens[index + 1].clone().value,
-                                Variable::new_var(
-                                    LexerState {
-                                        line: self.tokens[index + 1].clone().line,
-                                        column: self.tokens[index + 1].clone().column,
-                                    },
-                                    desc,
-                                ),
+                                LexerState {
+                                    line: self.tokens[index + 1].clone().line,
+                                    column: self.tokens[index + 1].clone().column,
+                                },
+                                desc,
                             );
                         } else if self.tokens.len() - index > 1 {
                             if self.tokens[index + 1].token_type == TokenType::Identifier {
@@ -261,15 +256,13 @@ impl Parser {
                                 {
                                     desc = self.tokens[index - 1].value.clone()
                                 }
-                                self.variables.insert(
+                                self.variables.new_var(
                                     self.tokens[index + 1].clone().value,
-                                    Variable::new_var(
-                                        LexerState {
-                                            line: self.tokens[index + 1].clone().line,
-                                            column: self.tokens[index + 1].clone().column,
-                                        },
-                                        desc,
-                                    ),
+                                    LexerState {
+                                        line: self.tokens[index + 1].clone().line,
+                                        column: self.tokens[index + 1].clone().column,
+                                    },
+                                    desc,
                                 );
                             } else if self.tokens.len() - index > 2
                                 && self.tokens[index + 2].token_type == TokenType::Identifier
@@ -287,15 +280,13 @@ impl Parser {
                                 {
                                     desc = self.tokens[index - 1].value.clone()
                                 }
-                                self.variables.insert(
+                                self.variables.new_var(
                                     self.tokens[index + 1].clone().value,
-                                    Variable::new_var(
-                                        LexerState {
-                                            line: self.tokens[index + 1].clone().line,
-                                            column: self.tokens[index + 1].clone().column,
-                                        },
-                                        desc,
-                                    ),
+                                    LexerState {
+                                        line: self.tokens[index + 1].clone().line,
+                                        column: self.tokens[index + 1].clone().column,
+                                    },
+                                    desc,
                                 );
                             } else if self.tokens.len() - index > 2
                                 && self.tokens[index + 1].value == "*"
@@ -310,15 +301,13 @@ impl Parser {
                                 {
                                     desc = self.tokens[index - 1].value.clone()
                                 }
-                                self.variables.insert(
+                                self.variables.new_var(
                                     self.tokens[index + 1].clone().value,
-                                    Variable::new_var(
-                                        LexerState {
-                                            line: self.tokens[index + 1].clone().line,
-                                            column: self.tokens[index + 1].clone().column,
-                                        },
-                                        desc,
-                                    ),
+                                    LexerState {
+                                        line: self.tokens[index + 1].clone().line,
+                                        column: self.tokens[index + 1].clone().column,
+                                    },
+                                    desc,
                                 );
                             }
                         }
