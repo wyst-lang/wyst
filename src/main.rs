@@ -1,4 +1,5 @@
 mod compile;
+mod file_writer;
 mod lexer;
 mod lsp;
 mod lspcom;
@@ -38,17 +39,23 @@ fn main() {
             }
             fs::create_dir("build").expect("error making build");
             let mut trsp = Transpiler::default();
-            let transpiled_code = trsp.transpile(file_content, 0, Variables::new());
+            let mut vars = Variables::new();
+            let mut transpiled_code = trsp.transpile(file_content, 0, &mut vars);
+            transpiled_code += "\nfn main() {std::process::exit(";
+            transpiled_code += vars.get_var("main".to_string(), &mut trsp).as_str();
+            transpiled_code += "())}";
             for problem in trsp.problems {
                 println!("{}", problem.problem_msg)
             }
+
+            trsp.writer.write();
 
             match args.rust {
                 Some(ref rust_file_name) => {
                     // Write transpiled code to Rust file
                     compile::write_to_rust_file(
                         &transpiled_code,
-                        ("build/".to_string() + rust_file_name).as_str(),
+                        ("build/".to_string() + "main.rs").as_str(),
                     )
                     .expect("Error writing to Rust file");
                     println!("Transpiled code written to {}", rust_file_name);
@@ -63,10 +70,14 @@ fn main() {
 
             match args.compile {
                 Some(ref exe_name) => {
-                    compile::write_to_rust_file(&transpiled_code, "build/temp.rs")
+                    compile::write_to_rust_file(&transpiled_code, "build/main.rs")
                         .expect("Error writing to temporary Rust file");
-                    compile::compile_to_executable("build/temp.rs", exe_name)
+                    std::env::set_current_dir("build").expect("setDir err: ");
+                    compile::compile_to_executable(exe_name)
                         .expect("Error compiling to executable");
+                    std::env::set_current_dir("..").expect("setDir0 err: ");
+                    fs::rename(Path::new("build").join(exe_name).as_path(), exe_name)
+                        .expect("RenameErrBuld: ");
                     fs::remove_dir_all("build").expect("err rm build");
                 }
                 None => {}

@@ -93,20 +93,20 @@ impl Variables {
         );
     }
 
-    pub fn new_keyword(&mut self, name: String, state: LexerState, desc: String) {
-        self.vars.insert(
-            name,
-            Variable {
-                vtype: VariableType::Keyword,
-                desc,
-                state,
-                params: Variables {
-                    vars: HashMap::new(),
-                },
-                rname: generate_varname(),
-            },
-        );
-    }
+    // pub fn new_keyword(&mut self, name: String, state: LexerState, desc: String) {
+    //     self.vars.insert(
+    //         name,
+    //         Variable {
+    //             vtype: VariableType::Keyword,
+    //             desc,
+    //             state,
+    //             params: Variables {
+    //                 vars: HashMap::new(),
+    //             },
+    //             rname: generate_varname(),
+    //         },
+    //     );
+    // }
 
     pub fn new_func(&mut self, name: String, state: LexerState, desc: String) {
         self.vars.insert(
@@ -155,6 +155,11 @@ impl Variables {
     }
     pub fn get_mut(&mut self, name: String) -> Option<&mut Variable> {
         self.vars.get_mut(&name)
+    }
+    pub fn expand(&mut self, vars: Variables) {
+        for (x, y) in vars.vars {
+            self.vars.insert(x, y);
+        }
     }
 }
 

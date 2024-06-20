@@ -33,7 +33,8 @@ pub fn get_completion(input: String, line: usize, column: usize) -> Variables {
         peek: rand_id.clone(),
         ..Default::default()
     };
-    transpiler.transpile(place_at(input, rand_id, line, column), 0, Variables::new());
+    let mut vars = Variables::new();
+    transpiler.transpile(place_at(input, rand_id, line, column), 0, &mut vars);
     transpiler.matched_vars
 }
 

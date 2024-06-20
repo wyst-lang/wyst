@@ -1,11 +1,12 @@
 use crate::{
+    file_writer::FileWriter,
     lexer::{lex, LexerState, TokenType},
     lspcom::Problem,
     parser::{is_decl, Ast, AstType, Parser},
     variable::{VariableType, Variables},
 };
 
-use std::fs;
+use std::{fs, path::Path};
 
 #[derive(Debug, Clone)]
 pub struct Transpiler {
@@ -18,11 +19,13 @@ pub struct Transpiler {
     pub peek: String,
     pub matched_vars: Variables,
     pub problems: Vec<Problem>,
+    pub writer: FileWriter,
 }
 
 impl Default for Transpiler {
     fn default() -> Transpiler {
-        Transpiler {
+        let transpiler = Transpiler {
+            writer: FileWriter::new(".".to_string()),
             state: LexerState { line: 1, column: 0 },
             auto_mut: true,
             auto_macro: true,
@@ -32,12 +35,13 @@ impl Default for Transpiler {
             peek: String::new(),
             matched_vars: Variables::new(),
             problems: Vec::new(),
-        }
+        };
+        transpiler
     }
 }
 
 impl Transpiler {
-    pub fn transpile(&mut self, input: String, indent: u32, variables: Variables) -> String {
+    pub fn transpile(&mut self, input: String, indent: u32, variables: &mut Variables) -> String {
         let mut result = String::new();
         if indent == 0 {
             // result += "type int = i32;\n";
@@ -54,7 +58,9 @@ impl Transpiler {
                     tokens: vec![],
                 };
                 let f_ast = full_ast.parse();
-                let mut variables = full_ast.variables.clone();
+                //variables.expand(full_ast.variables.clone());
+                *variables = full_ast.variables.clone();
+                //let mut variables = full_ast.variables.clone();
                 for ast in f_ast {
                     let mut ast = ast;
                     if ast.ast_type == AstType::Other
@@ -119,7 +125,11 @@ impl Transpiler {
                             ast.tokens[1].value,
                             round,
                             ast.tokens[0].value,
-                            self.transpile(ast.tokens[3].value.clone(), indent + 1, vars.clone())
+                            self.transpile(
+                                ast.tokens[3].value.clone(),
+                                indent + 1,
+                                &mut (vars.clone())
+                            )
                         )
                         .as_str();
                     } else if ast.ast_type == AstType::VoidFunctionDeceleration {
@@ -132,7 +142,11 @@ impl Transpiler {
                             "fn {}({}) {}",
                             ast.tokens[1].value,
                             round,
-                            self.transpile(ast.tokens[3].value.clone(), indent + 1, vars.clone())
+                            self.transpile(
+                                ast.tokens[3].value.clone(),
+                                indent + 1,
+                                &mut (vars.clone())
+                            )
                         )
                         .as_str();
                     } else if ast.ast_type == AstType::StructDeceleration {
@@ -246,7 +260,14 @@ impl Transpiler {
                         )
                         .as_str();
                     } else if ast.ast_type == AstType::Include {
-                        let modname = self.transpile_mod(ast, "lib/");
+                        let modname = self.writer.add(
+                            Path::new("lib")
+                                .join(&ast.tokens[0].value.clone())
+                                .to_str()
+                                .expect("ErrConvStr0")
+                                .to_string(),
+                            variables,
+                        );
                         result += "mod ";
                         result += modname.as_str();
                         result += ";\n";
@@ -255,7 +276,7 @@ impl Transpiler {
                         result += "::*;\n";
                         self.modnum += 1;
                     } else if ast.ast_type == AstType::IncludeLocal {
-                        let modname = self.transpile_mod(ast, "");
+                        let modname = self.writer.add(ast.tokens[0].value.clone(), variables);
                         result += "mod ";
                         result += modname.as_str();
                         result += ";\n";
@@ -274,7 +295,7 @@ impl Transpiler {
                             self.transpile(
                                 ast.tokens[2].value.clone(),
                                 indent + 1,
-                                variables.clone()
+                                &mut variables.clone()
                             ),
                         )
                         .as_str();
@@ -285,7 +306,7 @@ impl Transpiler {
                             self.transpile(
                                 ast.tokens[1].value.clone(),
                                 indent + 1,
-                                variables.clone()
+                                &mut variables.clone()
                             ),
                         )
                         .as_str();
@@ -294,7 +315,7 @@ impl Transpiler {
                             "mod {} {}{}{}",
                             &ast.tokens[0].value.clone(),
                             "{",
-                            self.transpile(ast.tokens[1].value.clone(), 0, variables.clone()),
+                            self.transpile(ast.tokens[1].value.clone(), 0, &mut variables.clone()),
                             "}"
                         )
                         .as_str();
@@ -303,7 +324,7 @@ impl Transpiler {
                             "impl {} {}{}{}",
                             &ast.tokens[0].value.clone(),
                             "{",
-                            self.transpile(ast.tokens[1].value.clone(), 0, variables.clone()),
+                            self.transpile(ast.tokens[1].value.clone(), 0, &mut variables.clone()),
                             "}"
                         )
                         .as_str();
@@ -368,7 +389,7 @@ impl Transpiler {
             self.clone().modnum
         );
         let file_content = fs::read_to_string(s.to_string() + modfile).expect("Error reading file");
-        let transpiled_code = self.transpile(file_content, 0, Variables::new());
+        let transpiled_code = self.transpile(file_content, 0, &mut Variables::new());
         fs::write(
             ("build/".to_string() + modname.as_str()) + ".rs",
             transpiled_code,
