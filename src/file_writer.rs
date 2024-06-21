@@ -1,6 +1,6 @@
 use std::fs;
 
-use crate::{transpiler::Transpiler, variable::Variables};
+use crate::{dll_reader::read_dll, transpiler::Transpiler, variable::Variables};
 
 #[derive(Clone, Debug)]
 pub struct Module {
@@ -46,6 +46,10 @@ impl FileWriter {
         }
     }
     pub fn add(&mut self, filepath: String, variables: &mut Variables) -> String {
+        if filepath.ends_with(".dll") {
+            read_dll(filepath.clone());
+            return "xyz".to_string();
+        }
         if let Some(module) = self.check(filepath.clone()) {
             return module.mod_rs.clone();
         }

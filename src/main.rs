@@ -1,4 +1,5 @@
 mod compile;
+mod dll_reader;
 mod file_writer;
 mod lexer;
 mod lsp;
@@ -41,7 +42,8 @@ fn main() {
             let mut trsp = Transpiler::default();
             let mut vars = Variables::new();
             let mut transpiled_code = trsp.transpile(file_content, 0, &mut vars);
-            transpiled_code += "\nfn main() {std::process::exit(";
+            transpiled_code += "\nfn main() {";
+            transpiled_code += "std::process::exit(";
             transpiled_code += vars.get_var("main".to_string(), &mut trsp).as_str();
             transpiled_code += "())}";
             for problem in trsp.problems {
