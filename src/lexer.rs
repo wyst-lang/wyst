@@ -1,7 +1,8 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
+use serde::Serialize;
 use std::fmt;
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize)]
 pub struct LexerState {
     pub line: usize,
     pub column: usize,
@@ -88,7 +89,9 @@ const SYNTAX: [Node; 16] = [
     },
     Node {
         token_type: TokenType::Keyword1,
-        token_regex: Lazy::new(|| Regex::new(r"^(impl|namespace|if|for|while|else *if)\b").unwrap()),
+        token_regex: Lazy::new(|| {
+            Regex::new(r"^(impl|namespace|if|for|while|else *if)\b").unwrap()
+        }),
     },
     Node {
         token_type: TokenType::Keyword2,

@@ -1,6 +1,6 @@
 use std::fs;
 
-use crate::{dll_reader::read_dll, transpiler::Transpiler, variable::Variables};
+use crate::{dllmgr::read_dll, transpiler::Transpiler, variable::Variables};
 
 #[derive(Clone, Debug)]
 pub struct Module {

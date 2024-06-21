@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use rand::Rng;
+use serde::Serialize;
 
 use crate::{
     lexer::LexerState,
@@ -8,7 +9,7 @@ use crate::{
     transpiler::Transpiler,
 };
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize)]
 pub enum VariableType {
     Var,
     Func,
@@ -17,7 +18,7 @@ pub enum VariableType {
     Namespace,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Variable {
     pub vtype: VariableType,
     pub desc: String,
@@ -26,7 +27,7 @@ pub struct Variable {
     pub rname: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Variables {
     pub vars: HashMap<String, Variable>,
 }
