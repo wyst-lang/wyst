@@ -103,11 +103,13 @@ pub fn get_items(mut items: Variables, lname: String) -> Vec<CompletionItem> {
 #[derive(Clone, Debug)]
 pub enum ProblemType {
     VariableNotFound,
+    FileNotFound,
+    HeaderSyntaxError,
 }
 
 #[derive(Clone, Debug)]
 pub struct Problem {
-    pub code: u32,
+    //pub code: u32,
     pub problem_type: ProblemType,
     pub problem_msg: String,
 }

@@ -1,7 +1,7 @@
 use crate::{
     file_writer::FileWriter,
     lexer::{lex, LexerState, TokenType},
-    lspcom::Problem,
+    lspcom::{Problem, ProblemType},
     parser::{is_decl, Ast, AstType, Parser},
     variable::{VariableType, Variables},
 };
@@ -260,30 +260,39 @@ impl Transpiler {
                         )
                         .as_str();
                     } else if ast.ast_type == AstType::Include {
-                        let modname = self.writer.add(
-                            Path::new("lib")
-                                .join(&ast.tokens[0].value.clone())
-                                .to_str()
-                                .expect("ErrConvStr0")
-                                .to_string(),
-                            variables,
-                        );
-                        result += "mod ";
-                        result += modname.as_str();
-                        result += ";\n";
-                        result += "use ";
-                        result += modname.as_str();
-                        result += "::*;\n";
-                        self.modnum += 1;
+                        match self
+                            .writer
+                            .add(ast.tokens[0].value.clone(), variables, true)
+                        {
+                            Ok(modname) => {
+                                result += "mod ";
+                                result += modname.as_str();
+                                result += ";\n";
+                                result += "use ";
+                                result += modname.as_str();
+                                result += "::*;\n";
+                            }
+                            Err(ptype) => {
+                                self.problems.push(ptype);
+                            }
+                        }
                     } else if ast.ast_type == AstType::IncludeLocal {
-                        let modname = self.writer.add(ast.tokens[0].value.clone(), variables);
-                        result += "mod ";
-                        result += modname.as_str();
-                        result += ";\n";
-                        result += "use ";
-                        result += modname.as_str();
-                        result += "::*;\n";
-                        self.modnum += 1;
+                        match self
+                            .writer
+                            .add(ast.tokens[0].value.clone(), variables, false)
+                        {
+                            Ok(modname) => {
+                                result += "mod ";
+                                result += modname.as_str();
+                                result += ";\n";
+                                result += "use ";
+                                result += modname.as_str();
+                                result += "::*;\n";
+                            }
+                            Err(ptype) => {
+                                self.problems.push(ptype);
+                            }
+                        }
                     } else if ast.ast_type == AstType::State3 {
                         result += format!(
                             "{} {} {}",
@@ -342,6 +351,14 @@ impl Transpiler {
                             )
                             .as_str();
                         }
+                    } else if ast.ast_type == AstType::StaticExecution {
+                        result += r#"use serde::Deserialize;
+use serde_json::Value;
+#[derive(Deserialize, Debug)]
+struct Request(i32, String, Vec<(bool, Value)>);
+#[derive(Deserialize, Debug)]
+struct Response(i32, Vec<(bool, Value)>);
+"#;
                     } else if ast.ast_type == AstType::Ref {
                         result += "&mut ";
                         result += ast.tokens[0].value.as_str();

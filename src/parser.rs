@@ -25,6 +25,7 @@ pub enum AstType {
     CodeBlock,
     Json,
     Impl,
+    StaticExecution,
     Other,
 }
 
@@ -343,6 +344,12 @@ impl Parser {
                             self.index += 1;
                         } else {
                             ast_res.tokens.push(token.clone());
+                        }
+                    }
+                    TokenType::StaticExecution => {
+                        if self.tokens[index + 1].token_type == TokenType::Square {
+                            ast_res.tokens.push(self.tokens[index + 1].clone());
+                            ast_res.ast_type = AstType::StaticExecution;
                         }
                     }
                     _ => {

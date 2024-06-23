@@ -1,8 +1,8 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fmt;
-#[derive(Debug, PartialEq, Clone, Copy, Serialize)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub struct LexerState {
     pub line: usize,
     pub column: usize,
@@ -29,6 +29,7 @@ pub enum TokenType {
     Include,
     String,
     Comment,
+    StaticExecution,
     // EOF,
 }
 
@@ -64,7 +65,7 @@ pub struct Node {
     token_regex: Lazy<Regex>,
 }
 
-const SYNTAX: [Node; 16] = [
+const SYNTAX: [Node; 17] = [
     Node {
         token_type: TokenType::Semicolon,
         token_regex: Lazy::new(|| Regex::new(r"^\;").unwrap()),
@@ -132,6 +133,10 @@ const SYNTAX: [Node; 16] = [
     Node {
         token_type: TokenType::Include,
         token_regex: Lazy::new(|| Regex::new(r#"^#include *"(.*?)""#).unwrap()),
+    },
+    Node {
+        token_type: TokenType::StaticExecution,
+        token_regex: Lazy::new(|| Regex::new(r"^#").unwrap()),
     },
 ];
 

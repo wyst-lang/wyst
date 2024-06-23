@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use rand::Rng;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     lexer::LexerState,
@@ -9,7 +9,7 @@ use crate::{
     transpiler::Transpiler,
 };
 
-#[derive(Clone, PartialEq, Debug, Serialize)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum VariableType {
     Var,
     Func,
@@ -18,7 +18,7 @@ pub enum VariableType {
     Namespace,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Variable {
     pub vtype: VariableType,
     pub desc: String,
@@ -27,7 +27,7 @@ pub struct Variable {
     pub rname: String,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Variables {
     pub vars: HashMap<String, Variable>,
 }
@@ -142,7 +142,6 @@ impl Variables {
             return x.rname.clone();
         } else {
             root.problems.push(Problem {
-                code: 1,
                 problem_type: ProblemType::VariableNotFound,
                 problem_msg: format!("Variable '{}' doesn't exist", &name),
             });

@@ -10,7 +10,7 @@ mod variable;
 use clap::Parser;
 use std::{fs, path::Path};
 use transpiler::Transpiler;
-use variable::{Variable, Variables};
+use variable::{Variable, VariableType, Variables};
 
 use crate::lsp::run_lsp_server;
 
@@ -50,8 +50,11 @@ fn main() {
                     transpiled_code += "std::process::exit(";
                     transpiled_code += vars.get_var("main".to_string(), &mut trsp).as_str();
                     transpiled_code += "())}";
-                    for problem in trsp.problems {
-                        println!("{}", problem.problem_msg)
+                    for problem in &trsp.problems {
+                        println!("{:?}: {}", problem.problem_type, problem.problem_msg)
+                    }
+                    if trsp.problems.len() > 0 {
+                        return;
                     }
                     trsp.writer.write();
 
@@ -81,9 +84,15 @@ fn main() {
                         println!("{}", problem.problem_msg)
                     }
                     trsp.writer.write();
-                    let mut dll_main = String::from("fn call_fn(params: Vec<Param>){");
+                    let mut dll_main = String::from(
+                        "mod wslib;use wslib::*;\nfn call_fn(fn_name: &str, params: Vec<Param>)->i32{match fn_name {",
+                    );
                     for (name, var) in vars.vars.clone() {
+                        if var.vtype != VariableType::Func {
+                            continue;
+                        }
                         let mut dparams = String::new();
+                        println!("{:?}", var.params.vars);
                         for i in 0..var.params.vars.len() {
                             dparams += format!("params.get({}).expect(\"Err_prms\"),", i).as_str();
                         }
@@ -93,7 +102,8 @@ fn main() {
                         )
                         .as_str();
                     }
-                    dll_main += "}";
+                    dll_main += "}}\nfn main(){}";
+                    //dll_main = "fn main(){}".to_string();
                     compile::write_to_rust_file(&transpiled_code, "build/wslib.rs")
                         .expect("Error writing to temporary Rust file");
                     compile::write_to_rust_file(&dll_main, "build/main.rs")
