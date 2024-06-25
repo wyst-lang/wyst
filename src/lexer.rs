@@ -85,7 +85,8 @@ const SYNTAX: [Node; 17] = [
     Node {
         token_type: TokenType::Keyword,
         token_regex: Lazy::new(|| {
-            Regex::new(r"^(pub|mut|try|catch|return|fn|let|use|cb|struct|impl|in|as)\b").unwrap()
+            Regex::new(r"^(pub|mut|try|catch|return|fn|let|use|cb|enum|struct|impl|in|as)\b")
+                .unwrap()
         }),
     },
     Node {

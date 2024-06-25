@@ -26,6 +26,7 @@ pub enum AstType {
     Json,
     Impl,
     StaticExecution,
+    EnumDeceleration,
     Other,
 }
 
@@ -119,6 +120,27 @@ impl Parser {
                 ast_res.tokens.push(self.tokens[index + 1].clone());
                 ast_res.ast_type = AstType::Ref;
                 self.index += 1;
+            } else if self.tokens.len() - index > 2
+                && self.tokens[index].value == "enum"
+                && self.tokens[index + 1].token_type == TokenType::Identifier
+                && self.tokens[index + 2].token_type == TokenType::Curly
+            {
+                ast_res.tokens.push(self.tokens[index + 1].clone());
+                ast_res.tokens.push(self.tokens[index + 2].clone());
+                ast_res.ast_type = AstType::EnumDeceleration;
+                self.index += 2;
+                let mut desc = String::new();
+                if index > 0 && self.tokens[index - 1].token_type == TokenType::Comment {
+                    desc = self.tokens[index - 1].value.clone()
+                }
+                self.variables.new_enum(
+                    self.tokens[index + 1].clone().value,
+                    LexerState {
+                        line: self.tokens[index + 1].clone().line,
+                        column: self.tokens[index + 1].clone().column,
+                    },
+                    desc,
+                );
             } else if self.tokens.len() - index > 2
                 && self.tokens[index].value == "struct"
                 && self.tokens[index + 1].token_type == TokenType::Identifier

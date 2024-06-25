@@ -156,6 +156,37 @@ impl Transpiler {
                         let mut vars: Variables = variables.clone();
                         let round = self.transpile_round(ast.tokens[1].value.clone(), &mut vars);
                         result += format!(
+                            "enum {} {} {}",
+                            ast.tokens[0].value,
+                            "{\n",
+                            round.trim_end()
+                        )
+                        .replace(
+                            "\n",
+                            ("\n".to_string() + " ".repeat(((indent + 1) as usize) * 2).as_str())
+                                .as_str(),
+                        )
+                        .as_str();
+                        result += "\n}\n";
+                        let vvars = variables.clone();
+                        if let Some(v) = variables.get_mut(ast.tokens[0].value.clone()) {
+                            for (name, var) in vars.iter_mut() {
+                                if !(vvars.vars.contains_key(name)) {
+                                    v.params.new_var(
+                                        name.to_string(),
+                                        LexerState { line: 0, column: 0 },
+                                        var.desc.clone(),
+                                    );
+                                }
+                            }
+                        }
+                    } else if ast.ast_type == AstType::StructDeceleration {
+                        if self.auto_pub {
+                            result += "pub ";
+                        }
+                        let mut vars: Variables = variables.clone();
+                        let round = self.transpile_round(ast.tokens[1].value.clone(), &mut vars);
+                        result += format!(
                             "struct {} {} {}",
                             ast.tokens[0].value,
                             "{\n",

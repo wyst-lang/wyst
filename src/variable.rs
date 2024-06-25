@@ -16,6 +16,7 @@ pub enum VariableType {
     Keyword,
     Struct,
     Namespace,
+    Enum,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -84,6 +85,20 @@ impl Variables {
             name,
             Variable {
                 vtype: VariableType::Struct,
+                desc,
+                state,
+                params: Variables {
+                    vars: HashMap::new(),
+                },
+                rname: generate_varname(),
+            },
+        );
+    }
+    pub fn new_enum(&mut self, name: String, state: LexerState, desc: String) {
+        self.vars.insert(
+            name,
+            Variable {
+                vtype: VariableType::Enum,
                 desc,
                 state,
                 params: Variables {
