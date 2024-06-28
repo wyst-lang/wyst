@@ -4,9 +4,8 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    lexer::LexerState,
-    lspcom::{Problem, ProblemType},
-    transpiler::Transpiler,
+    transpiler::{State, Transpiler},
+    utils::{Problem, ProblemType},
 };
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -23,7 +22,7 @@ pub enum VariableType {
 pub struct Variable {
     pub vtype: VariableType,
     pub desc: String,
-    pub state: LexerState,
+    pub state: State,
     pub params: Variables,
     pub rname: String,
 }
@@ -41,7 +40,7 @@ impl Variables {
                 Variable {
                     vtype: VariableType::Keyword,
                     desc: "".to_string(),
-                    state: LexerState { line: 0, column: 0 },
+                    state: State { line: 0, column: 0 },
                     params: Variables {
                         vars: HashMap::new(),
                     },
@@ -50,7 +49,7 @@ impl Variables {
             )]),
         }
     }
-    pub fn new_var(&mut self, name: String, state: LexerState, desc: String) {
+    pub fn new_var(&mut self, name: String, state: State, desc: String) {
         self.vars.insert(
             name,
             Variable {
@@ -65,7 +64,7 @@ impl Variables {
         );
     }
 
-    pub fn new_namespace(&mut self, name: String, state: LexerState, desc: String) {
+    pub fn new_namespace(&mut self, name: String, state: State, desc: String) {
         self.vars.insert(
             name,
             Variable {
@@ -80,7 +79,7 @@ impl Variables {
         );
     }
 
-    pub fn new_struct(&mut self, name: String, state: LexerState, desc: String) {
+    pub fn new_struct(&mut self, name: String, state: State, desc: String) {
         self.vars.insert(
             name,
             Variable {
@@ -94,7 +93,7 @@ impl Variables {
             },
         );
     }
-    pub fn new_enum(&mut self, name: String, state: LexerState, desc: String) {
+    pub fn new_enum(&mut self, name: String, state: State, desc: String) {
         self.vars.insert(
             name,
             Variable {
@@ -109,7 +108,7 @@ impl Variables {
         );
     }
 
-    // pub fn new_keyword(&mut self, name: String, state: LexerState, desc: String) {
+    // pub fn new_keyword(&mut self, name: String, state: State, desc: String) {
     //     self.vars.insert(
     //         name,
     //         Variable {
@@ -124,7 +123,7 @@ impl Variables {
     //     );
     // }
 
-    pub fn new_func(&mut self, name: String, state: LexerState, desc: String) {
+    pub fn new_func(&mut self, name: String, state: State, desc: String) {
         self.vars.insert(
             name,
             Variable {
@@ -138,7 +137,7 @@ impl Variables {
             },
         );
     }
-    pub fn add(&mut self, vtype: VariableType, name: String, state: LexerState, desc: String) {
+    pub fn add(&mut self, vtype: VariableType, name: String, state: State, desc: String) {
         self.vars.insert(
             name,
             Variable {
