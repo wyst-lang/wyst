@@ -17,6 +17,7 @@ pub struct Transpiler {
     pub peek: String,
     // pub libmgr: LibManager,
     pub problems: Vec<Problem>,
+    pub state: State,
 }
 
 impl Default for Transpiler {
@@ -26,13 +27,14 @@ impl Default for Transpiler {
             peek: String::new(),
             // libmgr: LibManager::new(".".to_string()),
             problems: Vec::new(),
+            state: State { line: 1, column: 0 },
         }
     }
 }
 
 impl Transpiler {
     pub fn transpile(&mut self, code: String, indent: u32, vars: &mut Variables) -> String {
-        let ast = parser::parse(code, vars);
+        let ast = parser::parse(code, vars, self);
         let mut res = String::new();
         for a in ast {
             match a {

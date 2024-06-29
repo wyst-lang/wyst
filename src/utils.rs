@@ -5,6 +5,7 @@ pub enum ProblemType {
     VariableNotFound,
     FileNotFound,
     HeaderSyntaxError,
+    SyntaxError,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
