@@ -16,6 +16,7 @@ pub enum Token {
 }
 pub enum Ast {
     Variable(String, String),
+    Function(String, String, String, String),
 }
 
 pub fn get_token(v: String, t: u32, state: State) -> Token {
@@ -131,7 +132,7 @@ pub fn tokenize(code: String, root: &mut Transpiler) -> Vec<Token> {
                         });
                     }
                 }
-                if t != token_type && token_type != 0 {
+                if (t != token_type || tval == '\n') && token_type != 0 {
                     tokens.push(get_token(
                         token_value.clone(),
                         token_type,
@@ -165,6 +166,17 @@ pub fn parse(code: String, vars: &mut Variables, root: &mut Transpiler) -> Vec<A
     while tokens.len() > 0 {
         let mut drain: usize = 1;
         match tokens.as_slice() {
+            [Token::Identifier(var_type, state0), Token::Identifier(var_name, state1), Token::Round(round, state2), Token::Curly(curly, state3), ..] =>
+            {
+                ast.push(Ast::Function(
+                    var_type.clone(),
+                    var_name.clone(),
+                    round.clone(),
+                    curly.clone(),
+                ));
+                drain += 1;
+                vars.new_func(var_name.clone(), state1.clone(), "".to_string());
+            }
             [Token::Identifier(var_type, state0), Token::Identifier(var_name, state1), ..] => {
                 ast.push(Ast::Variable(var_type.clone(), var_name.clone()));
                 drain += 1;

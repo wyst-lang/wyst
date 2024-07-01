@@ -8,7 +8,7 @@ mod variable;
 fn main() {
     let mut vars = Variables::new();
     let mut trsp = transpiler::Transpiler::default();
-    let out = trsp.transpile("{xyz}".to_string(), 0, &mut vars);
+    let out = trsp.transpile("void main() {int x}".to_string(), 0, &mut vars);
     for p in trsp.problems {
         println!("{:?}: {}", p.problem_type, p.problem_msg)
     }

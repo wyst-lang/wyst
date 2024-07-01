@@ -41,6 +41,13 @@ impl Transpiler {
                 Ast::Variable(var_type, var_name) => {
                     res += format!("let mut {}: {}", var_name, var_type).as_str();
                 }
+                Ast::Function(var_type, var_name, round, curly) => {
+                    res += format!(
+                        "fn {}({}) -> {} {}{}{}",
+                        var_name, round, var_type, "{", curly, "}"
+                    )
+                    .as_str();
+                }
             }
         }
         res
