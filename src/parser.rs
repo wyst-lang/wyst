@@ -44,7 +44,7 @@ pub fn tokenize(code: String, root: &mut Transpiler) -> Vec<Token> {
                 match c {
                     ')' => {
                         if stoken.0 == 1 {
-                            stoken.1 -= 1;
+                            stoken.1 += 1;
                             if stoken.1 == 0 {
                                 stoken.0 = 0;
                                 tokens.push(get_token(
@@ -61,7 +61,30 @@ pub fn tokenize(code: String, root: &mut Transpiler) -> Vec<Token> {
                     }
                     '(' => {
                         if stoken.0 == 1 {
+                            stoken.1 -= 1;
+                            token_value += c.to_string().as_str();
+                        }
+                    }
+                    '{' => {
+                        if stoken.0 == 2 {
                             stoken.1 += 1;
+                            if stoken.1 == 0 {
+                                stoken.0 = 0;
+                                tokens.push(get_token(
+                                    token_value.clone(),
+                                    token_type,
+                                    token_state.clone(),
+                                ));
+                                token_type = 0;
+                                token_value = String::new();
+                            } else {
+                                token_value += c.to_string().as_str();
+                            }
+                        }
+                    }
+                    '}' => {
+                        if stoken.0 == 2 {
+                            stoken.1 -= 1;
                             token_value += c.to_string().as_str();
                         }
                     }
@@ -131,8 +154,6 @@ pub fn tokenize(code: String, root: &mut Transpiler) -> Vec<Token> {
 pub fn parse(code: String, vars: &mut Variables, root: &mut Transpiler) -> Vec<Ast> {
     let mut ast: Vec<Ast> = Vec::new();
     let mut tokens = tokenize(code, root);
-    println!("{:?}", tokens);
-    panic!("xd");
     let mut pcon: Vec<(u32, u32)> = Vec::new();
     while tokens.len() > 0 {
         let mut drain: usize = 1;
