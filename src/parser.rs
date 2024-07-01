@@ -10,8 +10,8 @@ use crate::{
 pub enum Token {
     Number(String, State),
     Identifier(String, State),
-    // Curly(String),
-    // Round(String),
+    Curly(String, State),
+    Round(String, State),
     // Square(String),
 }
 pub enum Ast {
@@ -22,6 +22,7 @@ pub fn get_token(v: String, t: u32, state: State) -> Token {
     match t {
         1 => Token::Number(v, state),
         2 => Token::Identifier(v, state),
+        3 => Token::Round(v, state),
         _ => Token::Number(String::from(""), state),
     }
 }
@@ -31,52 +32,89 @@ pub fn tokenize(code: String, root: &mut Transpiler) -> Vec<Token> {
     let mut tokens: Vec<Token> = Vec::new();
     let mut token_value: String = String::new();
     let mut token_type: u32 = 0;
-    //let mut state = State { line:  }
+    let mut stoken: (u8, u8) = (0, 0);
+    let mut token_state = State { line: 0, column: 0 };
     while !code.is_empty() {
         if let Some(c) = code.chars().next() {
             code.remove(0);
-            let mut tval: char = c;
-            let mut t: u32 = 0;
+            let mut tval = c;
+            let mut t: u32 = token_type;
             root.state.column += 1;
-            match c {
-                '0'..='9' => {
-                    if token_type == 2 {
+            if stoken.1 > 0 {
+                match c {
+                    ')' => {
+                        if stoken.0 == 1 {
+                            stoken.1 -= 1;
+                            if stoken.1 == 0 {
+                                stoken.0 = 0;
+                                tokens.push(get_token(
+                                    token_value.clone(),
+                                    token_type,
+                                    token_state.clone(),
+                                ));
+                                token_type = 0;
+                                token_value = String::new();
+                            } else {
+                                token_value += c.to_string().as_str();
+                            }
+                        }
+                    }
+                    '(' => {
+                        if stoken.0 == 1 {
+                            stoken.1 += 1;
+                            token_value += c.to_string().as_str();
+                        }
+                    }
+                    _ => token_value += c.to_string().as_str(),
+                }
+            } else {
+                match c {
+                    '0'..='9' => {
+                        if token_type == 2 {
+                            t = 2;
+                        } else {
+                            t = 1;
+                        }
+                    }
+                    'a'..='z' | 'A'..='Z' => {
                         t = 2;
-                    } else {
-                        t = 1;
+                    }
+                    '\t' | ' ' => tval = '\n',
+                    '\n' | '\r' => {
+                        tval = '\n';
+                        root.state.line += 1;
+                        root.state.column = 0;
+                    }
+                    '(' => {
+                        stoken.0 = 1;
+                        stoken.1 += 1;
+                        tval = ' ';
+                        t = 3;
+                    }
+                    x => {
+                        root.problems.push(Problem {
+                            problem_msg: format!(
+                                "Invalid character '{}' at {}:{}, LexingError",
+                                x, root.state.line, root.state.column
+                            ),
+                            problem_type: ProblemType::SyntaxError,
+                        });
                     }
                 }
-                'a'..='z' | 'A'..='Z' => {
-                    t = 2;
+                if t != token_type && token_type != 0 {
+                    tokens.push(get_token(
+                        token_value.clone(),
+                        token_type,
+                        token_state.clone(),
+                    ));
+                    token_type = 0;
+                    token_value = String::new();
                 }
-                '\t' | ' ' => tval = ' ',
-                '\n' | '\r' => {
-                    tval = '\n';
-                    root.state.line += 1;
-                    root.state.column = 0;
+                if tval != '\n' {
+                    token_state = root.state.clone();
+                    token_type = t;
+                    token_value += tval.to_string().as_str().trim();
                 }
-                x => {
-                    root.problems.push(Problem {
-                        problem_msg: format!(
-                            "Invalid character '{}' at {}:{}, LexingError",
-                            x, root.state.line, root.state.column
-                        ),
-                        problem_type: ProblemType::SyntaxError,
-                    });
-                }
-            }
-            if t != token_type && token_type != 0 || tval == ' ' {
-                tokens.push(get_token(
-                    token_value.clone(),
-                    token_type,
-                    root.state.clone(),
-                ));
-                token_type = 0;
-                token_value = String::new();
-            }
-            if tval != ' ' && tval != '\n' {
-                token_type = t;
-                token_value += tval.to_string().as_str();
             }
         }
     }
@@ -93,6 +131,8 @@ pub fn tokenize(code: String, root: &mut Transpiler) -> Vec<Token> {
 pub fn parse(code: String, vars: &mut Variables, root: &mut Transpiler) -> Vec<Ast> {
     let mut ast: Vec<Ast> = Vec::new();
     let mut tokens = tokenize(code, root);
+    println!("{:?}", tokens);
+    panic!("xd");
     let mut pcon: Vec<(u32, u32)> = Vec::new();
     while tokens.len() > 0 {
         let mut drain: usize = 1;
