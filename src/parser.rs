@@ -23,6 +23,7 @@ pub fn get_token(v: String, t: u32, state: State) -> Token {
         1 => Token::Number(v, state),
         2 => Token::Identifier(v, state),
         3 => Token::Round(v, state),
+        4 => Token::Curly(v, state),
         _ => Token::Number(String::from(""), state),
     }
 }
@@ -42,9 +43,15 @@ pub fn tokenize(code: String, root: &mut Transpiler) -> Vec<Token> {
             root.state.column += 1;
             if stoken.1 > 0 {
                 match c {
-                    ')' => {
+                    '(' => {
                         if stoken.0 == 1 {
                             stoken.1 += 1;
+                            token_value += c.to_string().as_str();
+                        }
+                    }
+                    ')' => {
+                        if stoken.0 == 1 {
+                            stoken.1 -= 1;
                             if stoken.1 == 0 {
                                 stoken.0 = 0;
                                 tokens.push(get_token(
@@ -57,17 +64,17 @@ pub fn tokenize(code: String, root: &mut Transpiler) -> Vec<Token> {
                             } else {
                                 token_value += c.to_string().as_str();
                             }
-                        }
-                    }
-                    '(' => {
-                        if stoken.0 == 1 {
-                            stoken.1 -= 1;
-                            token_value += c.to_string().as_str();
                         }
                     }
                     '{' => {
-                        if stoken.0 == 2 {
+                        if stoken.0 == 1 {
                             stoken.1 += 1;
+                            token_value += c.to_string().as_str();
+                        }
+                    }
+                    '}' => {
+                        if stoken.0 == 1 {
+                            stoken.1 -= 1;
                             if stoken.1 == 0 {
                                 stoken.0 = 0;
                                 tokens.push(get_token(
@@ -80,12 +87,6 @@ pub fn tokenize(code: String, root: &mut Transpiler) -> Vec<Token> {
                             } else {
                                 token_value += c.to_string().as_str();
                             }
-                        }
-                    }
-                    '}' => {
-                        if stoken.0 == 2 {
-                            stoken.1 -= 1;
-                            token_value += c.to_string().as_str();
                         }
                     }
                     _ => token_value += c.to_string().as_str(),
@@ -110,9 +111,15 @@ pub fn tokenize(code: String, root: &mut Transpiler) -> Vec<Token> {
                     }
                     '(' => {
                         stoken.0 = 1;
-                        stoken.1 += 1;
+                        stoken.1 = 1;
                         tval = ' ';
                         t = 3;
+                    }
+                    '{' => {
+                        stoken.0 = 2;
+                        stoken.1 = 1;
+                        tval = ' ';
+                        t = 4;
                     }
                     x => {
                         root.problems.push(Problem {
