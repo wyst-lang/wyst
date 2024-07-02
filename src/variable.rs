@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     transpiler::{State, Transpiler},
-    utils::{Problem, ProblemType},
+    utils::{Problem, ProblemCap, ProblemType},
 };
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -49,7 +49,8 @@ impl Variables {
             )]),
         }
     }
-    pub fn new_var(&mut self, name: String, state: State, desc: String) {
+    pub fn new_var(&mut self, name: String, state: State, desc: String) -> String {
+        let rname = generate_varname();
         self.vars.insert(
             name,
             Variable {
@@ -59,12 +60,14 @@ impl Variables {
                 params: Variables {
                     vars: HashMap::new(),
                 },
-                rname: generate_varname(),
+                rname: rname.clone(),
             },
         );
+        rname
     }
 
-    pub fn new_namespace(&mut self, name: String, state: State, desc: String) {
+    pub fn new_namespace(&mut self, name: String, state: State, desc: String) -> String {
+        let rname = generate_varname();
         self.vars.insert(
             name,
             Variable {
@@ -74,12 +77,14 @@ impl Variables {
                 params: Variables {
                     vars: HashMap::new(),
                 },
-                rname: generate_varname(),
+                rname: rname.clone(),
             },
         );
+        rname
     }
 
-    pub fn new_struct(&mut self, name: String, state: State, desc: String) {
+    pub fn new_struct(&mut self, name: String, state: State, desc: String) -> String {
+        let rname = generate_varname();
         self.vars.insert(
             name,
             Variable {
@@ -89,11 +94,13 @@ impl Variables {
                 params: Variables {
                     vars: HashMap::new(),
                 },
-                rname: generate_varname(),
+                rname: rname.clone(),
             },
         );
+        rname
     }
-    pub fn new_enum(&mut self, name: String, state: State, desc: String) {
+    pub fn new_enum(&mut self, name: String, state: State, desc: String) -> String {
+        let rname = generate_varname();
         self.vars.insert(
             name,
             Variable {
@@ -103,9 +110,10 @@ impl Variables {
                 params: Variables {
                     vars: HashMap::new(),
                 },
-                rname: generate_varname(),
+                rname: rname.clone(),
             },
         );
+        rname
     }
 
     // pub fn new_keyword(&mut self, name: String, state: State, desc: String) {
@@ -123,7 +131,8 @@ impl Variables {
     //     );
     // }
 
-    pub fn new_func(&mut self, name: String, state: State, desc: String) {
+    pub fn new_func(&mut self, name: String, state: State, desc: String) -> String {
+        let rname = generate_varname();
         self.vars.insert(
             name,
             Variable {
@@ -133,9 +142,10 @@ impl Variables {
                 params: Variables {
                     vars: HashMap::new(),
                 },
-                rname: generate_varname(),
+                rname: rname.clone(),
             },
         );
+        rname
     }
     pub fn add(&mut self, vtype: VariableType, name: String, state: State, desc: String) {
         self.vars.insert(
@@ -151,14 +161,15 @@ impl Variables {
             },
         );
     }
-    pub fn get_var(&mut self, name: String, root: &mut Transpiler) -> String {
+    pub fn get_var(&mut self, name: String, root: &mut Transpiler, state: State) -> String {
         if let Some(x) = self.get_mut(name.clone()) {
             return x.rname.clone();
         } else {
-            root.problems.push(Problem {
+            root.problems.push(ProblemCap::Error(Problem {
                 problem_type: ProblemType::VariableNotFound,
                 problem_msg: format!("Variable '{}' doesn't exist", &name),
-            });
+                state: state,
+            }));
             return name;
         }
     }

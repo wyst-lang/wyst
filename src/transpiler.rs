@@ -1,6 +1,6 @@
 use crate::{
     parser::{self, Ast},
-    utils::Problem,
+    utils::ProblemCap,
     variable::Variables,
 };
 use serde::{Deserialize, Serialize};
@@ -16,7 +16,7 @@ pub struct Transpiler {
     pub matched_vars: Variables,
     pub peek: String,
     // pub libmgr: LibManager,
-    pub problems: Vec<Problem>,
+    pub problems: Vec<ProblemCap>,
     pub state: State,
 }
 
@@ -33,9 +33,12 @@ impl Default for Transpiler {
 }
 
 impl Transpiler {
-    pub fn transpile(&mut self, code: String, indent: u32, vars: &mut Variables) -> String {
+    pub fn transpile(&mut self, code: String, indent: usize, vars: &mut Variables) -> String {
         let ast = parser::parse(code, vars, self);
         let mut res = String::new();
+        if indent > 0 {
+            res += " ".repeat(indent * 2).as_str();
+        }
         for a in ast {
             match a {
                 Ast::Variable(var_type, var_name) => {
@@ -43,12 +46,21 @@ impl Transpiler {
                 }
                 Ast::Function(var_type, var_name, round, curly) => {
                     res += format!(
-                        "fn {}({}) -> {} {}{}{}",
-                        var_name, round, var_type, "{", curly, "}"
+                        "fn {}({}) -> {} {}\n{}{}\n",
+                        var_name,
+                        round,
+                        var_type,
+                        "{",
+                        self.transpile(curly, indent + 1, &mut vars.clone()),
+                        "}"
                     )
                     .as_str();
                 }
             }
+        }
+        if indent > 0 {
+            res += "\n";
+            res += " ".repeat((indent - 1) * 2).as_str();
         }
         res
     }
