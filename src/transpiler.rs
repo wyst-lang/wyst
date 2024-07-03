@@ -34,7 +34,7 @@ impl Default for Transpiler {
 
 impl Transpiler {
     pub fn transpile(&mut self, code: String, indent: usize, vars: &mut Variables) -> String {
-        let ast = parser::parse(code, vars, self);
+        let ast = parser::parse(code, vars, &mut self.state.clone(), self);
         let mut res = String::new();
         if indent > 0 {
             res += " ".repeat(indent * 2).as_str();
@@ -55,6 +55,16 @@ impl Transpiler {
                         "}"
                     )
                     .as_str();
+                }
+                Ast::Struct(name, curly) => {
+                    res += format!(
+                        "struct {} {}\n{}{}\n",
+                        name,
+                        "{",
+                        self.transpile(curly, indent + 1, &mut vars.clone()),
+                        "}"
+                    )
+                    .as_str()
                 }
             }
         }

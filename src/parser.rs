@@ -10,33 +10,34 @@ use crate::{
 #[allow(dead_code)]
 pub enum Token {
     Number(String, State),
-    Keyword(String, State),
+    DKeyword(String, State),
     Identifier(String, State),
     Curly(String, State),
     Round(String, State),
     // Square(String),
 }
 
-pub fn extract_state(token: Token) -> State {
+pub fn extract_values(token: Token) -> (String, State) {
     match token {
-        Token::Number(_, state) => state,
-        Token::Identifier(_, state) => state,
-        Token::Curly(_, state) => state,
-        Token::Round(_, state) => state,
-        Token::Keyword(_, state) => state,
+        Token::Number(x, state) => (x, state),
+        Token::Identifier(x, state) => (x, state),
+        Token::Curly(x, state) => (x, state),
+        Token::Round(x, state) => (x, state),
+        Token::DKeyword(x, state) => (x, state),
     }
 }
 
 pub enum Ast {
     Variable(String, String),
     Function(String, String, String, String),
+    Struct(String, String),
 }
 
 pub fn get_token(v: String, t: u32, state: State) -> Token {
     match t {
         1 => Token::Number(v, state),
         2 => match v.as_str() {
-            "enum" | "struct" | "namespace" => Token::Keyword(v, state),
+            "enum" | "struct" | "namespace" => Token::DKeyword(v, state),
             _ => Token::Identifier(v, state),
         },
         3 => Token::Round(v, state),
@@ -45,7 +46,7 @@ pub fn get_token(v: String, t: u32, state: State) -> Token {
     }
 }
 
-pub fn tokenize(code: String, root: &mut Transpiler) -> Vec<Token> {
+pub fn tokenize(code: String, state: &mut State, root: &mut Transpiler) -> Vec<Token> {
     let mut code = code;
     let mut tokens: Vec<Token> = Vec::new();
     let mut token_value: String = String::new();
@@ -56,8 +57,9 @@ pub fn tokenize(code: String, root: &mut Transpiler) -> Vec<Token> {
         if let Some(c) = code.chars().next() {
             code.remove(0);
             let mut tval = c;
-            let mut t: u32 = token_type;
-            root.state.column += 1;
+            let mut t: u32 = 0;
+            let mut ignore = false;
+            state.column += 1;
             if stoken.1 > 0 {
                 match c {
                     '(' => {
@@ -120,11 +122,13 @@ pub fn tokenize(code: String, root: &mut Transpiler) -> Vec<Token> {
                     'a'..='z' | 'A'..='Z' => {
                         t = 2;
                     }
-                    '\t' | ' ' => tval = '\n',
+                    '\t' | ' ' => {
+                        ignore = true;
+                    }
                     '\n' | '\r' => {
-                        tval = '\n';
-                        root.state.line += 1;
-                        root.state.column = 0;
+                        ignore = true;
+                        state.line += 1;
+                        state.column = 0;
                     }
                     '(' => {
                         stoken.0 = 1;
@@ -142,11 +146,12 @@ pub fn tokenize(code: String, root: &mut Transpiler) -> Vec<Token> {
                         root.problems.push(ProblemCap::Error(Problem {
                             problem_msg: format!("Invalid character '{}'", x,),
                             problem_type: ProblemType::SyntaxError,
-                            state: root.state.clone(),
+                            state: state.clone(),
                         }));
+                        ignore = true;
                     }
                 }
-                if (t != token_type || tval == '\n') && token_type != 0 {
+                if token_type != t && token_type != 0 {
                     tokens.push(get_token(
                         token_value.clone(),
                         token_type,
@@ -155,27 +160,30 @@ pub fn tokenize(code: String, root: &mut Transpiler) -> Vec<Token> {
                     token_type = 0;
                     token_value = String::new();
                 }
-                if tval != '\n' {
-                    token_state = root.state.clone();
+                if token_type != t {
+                    token_state = state.clone();
                     token_type = t;
-                    token_value += tval.to_string().as_str().trim();
+                    token_value += tval.to_string().as_str();
+                } else if !ignore {
+                    token_value += tval.to_string().as_str();
                 }
             }
         }
     }
     if token_type != 0 {
-        tokens.push(get_token(
-            token_value.clone(),
-            token_type,
-            root.state.clone(),
-        ));
+        tokens.push(get_token(token_value.clone(), token_type, state.clone()));
     }
     tokens
 }
 
-pub fn parse(code: String, vars: &mut Variables, root: &mut Transpiler) -> Vec<Ast> {
+pub fn parse(
+    code: String,
+    vars: &mut Variables,
+    state: &mut State,
+    root: &mut Transpiler,
+) -> Vec<Ast> {
     let mut ast: Vec<Ast> = Vec::new();
-    let mut tokens = tokenize(code, root);
+    let mut tokens = tokenize(code, state, root);
     let mut pcon: Vec<(u32, u32)> = Vec::new();
     while tokens.len() > 0 {
         let mut drain: usize = 1;
@@ -201,12 +209,24 @@ pub fn parse(code: String, vars: &mut Variables, root: &mut Transpiler) -> Vec<A
                 ));
                 drain += 1;
             }
+            [Token::DKeyword(keyword, _), Token::Identifier(name, state), Token::Curly(curly, _), ..] =>
+            {
+                match keyword.as_str() {
+                    "struct" => ast.push(Ast::Struct(
+                        vars.new_struct(name.clone(), state.clone(), String::from("")),
+                        curly.clone(),
+                    )),
+                    _ => {}
+                }
+                drain += 2;
+            }
             x => {
-                if !pcon.contains(&(root.state.line, root.state.column)) {
+                let estate = extract_values(x[0].clone()).1;
+                if !pcon.contains(&(estate.line, estate.column)) {
                     root.problems.push(ProblemCap::Error(Problem {
                         problem_msg: format!("Invalid placement"),
                         problem_type: ProblemType::SyntaxError,
-                        state: extract_state(x[0].clone()),
+                        state: estate,
                     }));
                     pcon.push((root.state.line, root.state.column));
                 }

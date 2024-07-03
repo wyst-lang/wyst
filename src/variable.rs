@@ -147,20 +147,6 @@ impl Variables {
         );
         rname
     }
-    pub fn add(&mut self, vtype: VariableType, name: String, state: State, desc: String) {
-        self.vars.insert(
-            name,
-            Variable {
-                vtype,
-                desc,
-                state,
-                params: Variables {
-                    vars: HashMap::new(),
-                },
-                rname: generate_varname(),
-            },
-        );
-    }
     pub fn get_var(&mut self, name: String, root: &mut Transpiler, state: State) -> String {
         if let Some(x) = self.get_mut(name.clone()) {
             return x.rname.clone();

@@ -9,7 +9,7 @@ mod variable;
 fn main() {
     let mut vars = Variables::new();
     let mut trsp = transpiler::Transpiler::default();
-    let out = trsp.transpile("void main() {x int x}".to_string(), 0, &mut vars);
+    let out = trsp.transpile("struct Test {}".to_string(), 0, &mut vars);
     for p in trsp.problems {
         match p {
             ProblemCap::Error(problem) => {
