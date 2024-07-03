@@ -1,7 +1,6 @@
 use crate::{
-    parser::{self, Ast},
-    utils::ProblemCap,
-    variable::Variables,
+    parser::{self, extract_ast, Ast},
+    utils::{ProblemCap, VariableType, Variables},
 };
 use serde::{Deserialize, Serialize};
 
@@ -14,18 +13,30 @@ pub struct State {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Transpiler {
     pub matched_vars: Variables,
-    pub peek: String,
-    // pub libmgr: LibManager,
     pub problems: Vec<ProblemCap>,
     pub state: State,
+    pub inject: Inject,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Inject {
+    pub state: State,
+    pub inject: bool,
+}
+
+impl Default for Inject {
+    fn default() -> Self {
+        Inject {
+            inject: false,
+            state: State { line: 0, column: 0 },
+        }
+    }
 }
 
 impl Default for Transpiler {
     fn default() -> Self {
         Transpiler {
             matched_vars: Variables::new(),
-            peek: String::new(),
-            // libmgr: LibManager::new(".".to_string()),
+            inject: Inject::default(),
             problems: Vec::new(),
             state: State { line: 1, column: 0 },
         }
@@ -40,6 +51,20 @@ impl Transpiler {
             res += " ".repeat(indent * 2).as_str();
         }
         for a in ast {
+            let astval = extract_ast(a.clone());
+            if self.inject.inject {
+                for val in astval {
+                    if val.contains("list_vx") {
+                        for (name, var) in vars.clone().iter_mut() {
+                            if self.inject.state.line > var.state.line
+                                || var.vtype != VariableType::Var
+                            {
+                                self.matched_vars.vars.insert(name.clone(), var.clone());
+                            }
+                        }
+                    }
+                }
+            }
             match a {
                 Ast::Variable(var_type, var_name) => {
                     res += format!("let mut {}: {}", var_name, var_type).as_str();
@@ -66,6 +91,7 @@ impl Transpiler {
                     )
                     .as_str()
                 }
+                Ast::Single(_) => {}
             }
         }
         if indent > 0 {

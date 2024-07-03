@@ -2,8 +2,7 @@ use std::usize;
 
 use crate::{
     transpiler::{State, Transpiler},
-    utils::{Problem, ProblemCap, ProblemType},
-    variable::Variables,
+    utils::{Problem, ProblemCap, ProblemType, Variables},
 };
 
 #[derive(Clone, Debug)]
@@ -27,10 +26,34 @@ pub fn extract_values(token: Token) -> (String, State) {
     }
 }
 
+pub fn extract_ast(ast: Ast) -> Vec<String> {
+    let mut vstr: Vec<String> = Vec::new();
+    match ast {
+        Ast::Struct(a, _) => {
+            vstr.push(a);
+        }
+        Ast::Single(a) => match a {
+            Token::Identifier(b, _) => vstr.push(b),
+            _ => {}
+        },
+        Ast::Variable(a, b) => {
+            vstr.push(a);
+            vstr.push(b);
+        }
+        Ast::Function(a, b, _, _) => {
+            vstr.push(a);
+            vstr.push(b);
+        }
+    }
+    vstr
+}
+
+#[derive(Clone, Debug)]
 pub enum Ast {
     Variable(String, String),
     Function(String, String, String, String),
     Struct(String, String),
+    Single(Token),
 }
 
 pub fn get_token(v: String, t: u32, state: State) -> Token {
@@ -48,6 +71,7 @@ pub fn get_token(v: String, t: u32, state: State) -> Token {
 
 pub fn tokenize(code: String, state: &mut State, root: &mut Transpiler) -> Vec<Token> {
     let mut code = code;
+    code += " ";
     let mut tokens: Vec<Token> = Vec::new();
     let mut token_value: String = String::new();
     let mut token_type: u32 = 0;
@@ -60,6 +84,12 @@ pub fn tokenize(code: String, state: &mut State, root: &mut Transpiler) -> Vec<T
             let mut t: u32 = 0;
             let mut ignore = false;
             state.column += 1;
+            if root.inject.inject
+                && root.inject.state.line == state.line
+                && root.inject.state.column == state.column
+            {
+                token_value += "list_vx";
+            }
             if stoken.1 > 0 {
                 match c {
                     '(' => {
@@ -184,9 +214,14 @@ pub fn parse(
 ) -> Vec<Ast> {
     let mut ast: Vec<Ast> = Vec::new();
     let mut tokens = tokenize(code, state, root);
-    let mut pcon: Vec<(u32, u32)> = Vec::new();
     while tokens.len() > 0 {
         let mut drain: usize = 1;
+        let vals = extract_values(tokens[0].clone());
+        if vals.0.contains("list_vx") {
+            ast.push(Ast::Single(Token::Identifier(vals.0, vals.1)));
+            tokens.drain(0..1);
+            continue;
+        }
         match tokens.as_slice() {
             [Token::Identifier(var_type, state0), Token::Identifier(var_name, _state1), Token::Round(round, _state2), Token::Curly(curly, _state3), ..] =>
             {
@@ -221,15 +256,16 @@ pub fn parse(
                 drain += 2;
             }
             x => {
-                let estate = extract_values(x[0].clone()).1;
-                if !pcon.contains(&(estate.line, estate.column)) {
-                    root.problems.push(ProblemCap::Error(Problem {
-                        problem_msg: format!("Invalid placement"),
-                        problem_type: ProblemType::SyntaxError,
-                        state: estate,
-                    }));
-                    pcon.push((root.state.line, root.state.column));
-                }
+                ast.push(Ast::Single(x[0].clone()));
+                //let estate = extract_values(x[0].clone()).1;
+                //if !pcon.contains(&(estate.line, estate.column)) {
+                //    root.problems.push(ProblemCap::Error(Problem {
+                //        problem_msg: format!("Invalid placement"),
+                //        problem_type: ProblemType::SyntaxError,
+                //        state: estate,
+                //    }));
+                //    pcon.push((root.state.line, root.state.column));
+                //}
             }
         }
         tokens.drain(0..drain);
