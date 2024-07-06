@@ -7,5 +7,14 @@
 
 <h3 align="center">Wyst is a programing language that has similar syntax to C and transpiles to Rust</h3>
 
+```c
+#include <stdio.h>
+
+int main() {
+  printf("Hello, World!");
+  return 0;
+}
+```
+
 # Alpha
 We are on pure alpha. if you would like to contribute please open a new issue.
