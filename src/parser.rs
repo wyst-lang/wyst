@@ -9,6 +9,8 @@ use crate::{
 #[allow(dead_code)]
 pub enum Token {
     Number(String, State),
+    Keyword(String, State),
+    SKeyword(String, State),
     DKeyword(String, State),
     Identifier(String, State),
     Curly(String, State),
@@ -23,6 +25,8 @@ pub fn extract_values(token: Token) -> (String, State) {
         Token::Curly(x, state) => (x, state),
         Token::Round(x, state) => (x, state),
         Token::DKeyword(x, state) => (x, state),
+        Token::SKeyword(x, state) => (x, state),
+        Token::Keyword(x, state) => (x, state),
     }
 }
 
@@ -44,6 +48,7 @@ pub fn extract_ast(ast: Ast) -> Vec<String> {
             vstr.push(a);
             vstr.push(b);
         }
+        _ => {}
     }
     vstr
 }
@@ -53,6 +58,7 @@ pub enum Ast {
     Variable(String, String),
     Function(String, String, String, String),
     Struct(String, String),
+    Rust(String),
     Single(Token),
 }
 
@@ -61,6 +67,7 @@ pub fn get_token(v: String, t: u32, state: State) -> Token {
         1 => Token::Number(v, state),
         2 => match v.as_str() {
             "enum" | "struct" | "namespace" => Token::DKeyword(v, state),
+            "rust" => Token::SKeyword(v, state),
             _ => Token::Identifier(v, state),
         },
         3 => Token::Round(v, state),
@@ -254,6 +261,13 @@ pub fn parse(
                     _ => {}
                 }
                 drain += 2;
+            }
+            [Token::SKeyword(keyword, _), Token::Curly(curly, _), ..] => {
+                match keyword.as_str() {
+                    "rust" => ast.push(Ast::Rust(curly.clone())),
+                    _ => {}
+                }
+                drain += 1;
             }
             x => {
                 ast.push(Ast::Single(x[0].clone()));

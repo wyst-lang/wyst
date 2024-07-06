@@ -7,10 +7,7 @@ mod utils;
 fn main() {
     let mut vars = Variables::new();
     let mut trsp = transpiler::Transpiler::default();
-    trsp.inject.inject = true;
-    trsp.inject.state.line = 2;
-    trsp.inject.state.column = 2;
-    let out = trsp.transpile("int x\nx".to_string(), 0, &mut vars);
+    let out = trsp.transpile("rust{let mut x;}".to_string(), 0, &mut vars);
     for p in trsp.problems {
         match p {
             ProblemCap::Error(problem) => {

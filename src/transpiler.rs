@@ -91,6 +91,11 @@ impl Transpiler {
                     )
                     .as_str()
                 }
+                Ast::Rust(rs) => {
+                    res += "{";
+                    res += rs.as_str();
+                    res += "}";
+                }
                 Ast::Single(_) => {}
             }
         }
