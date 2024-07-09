@@ -19,7 +19,6 @@ pub enum ProblemCap {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Problem {
-    //pub code: u32,
     pub problem_type: ProblemType,
     pub problem_msg: String,
     pub state: State,
@@ -57,7 +56,11 @@ impl Variables {
                 Variable {
                     vtype: VariableType::Keyword,
                     desc: "".to_string(),
-                    state: State { line: 0, column: 0 },
+                    state: State {
+                        line: 0,
+                        column: 0,
+                        file: None,
+                    },
                     params: Variables {
                         vars: HashMap::new(),
                     },
@@ -182,7 +185,26 @@ impl Variables {
         self.vars.iter_mut()
     }
     pub fn get_mut(&mut self, name: String) -> Option<&mut Variable> {
-        self.vars.get_mut(&name)
+        if !name.contains("::") {
+            return self.vars.get_mut(&name);
+        }
+        if let Some((x, _)) = name.split_once("::") {
+            println!("{x}");
+            if let Some(v) = self.vars.get_mut(x) {
+                println!("{:?}", v);
+                let mut var = v;
+                for a in name.split("::") {
+                    if let Some(b) = var.params.vars.get_mut(a) {
+                        var = b;
+                    } else {
+                        return None;
+                    }
+                }
+                return Some(var);
+            }
+            return None;
+        }
+        None
     }
     pub fn expand(&mut self, vars: Variables) {
         for (x, y) in vars.vars {

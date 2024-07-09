@@ -1,5 +1,5 @@
 use crate::{
-    parser::{self, extract_ast, Ast},
+    parser::{self, extract_ast, extract_values, Ast},
     utils::{ProblemCap, VariableType, Variables},
 };
 use serde::{Deserialize, Serialize};
@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 pub struct State {
     pub line: u32,
     pub column: u32,
+    pub file: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -27,7 +28,11 @@ impl Default for Inject {
     fn default() -> Self {
         Inject {
             inject: false,
-            state: State { line: 0, column: 0 },
+            state: State {
+                line: 0,
+                column: 0,
+                file: None,
+            },
         }
     }
 }
@@ -38,7 +43,11 @@ impl Default for Transpiler {
             matched_vars: Variables::new(),
             inject: Inject::default(),
             problems: Vec::new(),
-            state: State { line: 1, column: 0 },
+            state: State {
+                line: 1,
+                column: 0,
+                file: None,
+            },
         }
     }
 }
@@ -96,7 +105,13 @@ impl Transpiler {
                     res += rs.as_str();
                     res += "}";
                 }
-                Ast::Single(_) => {}
+                Ast::Single(x) => {
+                    let vals = extract_values(x);
+                    if vals.0 == 1 {
+                        println!("{:?}", vals);
+                        res += vars.get_var(vals.1, self, vals.2).as_str();
+                    }
+                }
             }
         }
         if indent > 0 {

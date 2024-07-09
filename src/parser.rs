@@ -18,15 +18,15 @@ pub enum Token {
     // Square(String),
 }
 
-pub fn extract_values(token: Token) -> (String, State) {
+pub fn extract_values(token: Token) -> (u8, String, State) {
     match token {
-        Token::Number(x, state) => (x, state),
-        Token::Identifier(x, state) => (x, state),
-        Token::Curly(x, state) => (x, state),
-        Token::Round(x, state) => (x, state),
-        Token::DKeyword(x, state) => (x, state),
-        Token::SKeyword(x, state) => (x, state),
-        Token::Keyword(x, state) => (x, state),
+        Token::Number(x, state) => (0, x, state),
+        Token::Identifier(x, state) => (1, x, state),
+        Token::Curly(x, state) => (2, x, state),
+        Token::Round(x, state) => (3, x, state),
+        Token::DKeyword(x, state) => (4, x, state),
+        Token::SKeyword(x, state) => (5, x, state),
+        Token::Keyword(x, state) => (6, x, state),
     }
 }
 
@@ -83,7 +83,11 @@ pub fn tokenize(code: String, state: &mut State, root: &mut Transpiler) -> Vec<T
     let mut token_value: String = String::new();
     let mut token_type: u32 = 0;
     let mut stoken: (u8, u8) = (0, 0);
-    let mut token_state = State { line: 0, column: 0 };
+    let mut token_state = State {
+        line: 0,
+        column: 0,
+        file: None,
+    };
     while !code.is_empty() {
         if let Some(c) = code.chars().next() {
             code.remove(0);
@@ -224,8 +228,8 @@ pub fn parse(
     while tokens.len() > 0 {
         let mut drain: usize = 1;
         let vals = extract_values(tokens[0].clone());
-        if vals.0.contains("list_vx") {
-            ast.push(Ast::Single(Token::Identifier(vals.0, vals.1)));
+        if vals.1.contains("list_vx") {
+            ast.push(Ast::Single(Token::Identifier(vals.1, vals.2)));
             tokens.drain(0..1);
             continue;
         }
