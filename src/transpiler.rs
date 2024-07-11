@@ -106,10 +106,15 @@ impl Transpiler {
                     res += "}";
                 }
                 Ast::Single(x) => {
+                    println!("{:?}", x);
                     let vals = extract_values(x);
-                    if vals.0 == 1 {
-                        println!("{:?}", vals);
-                        res += vars.get_var(vals.1, self, vals.2).as_str();
+                    match vals.0 {
+                        2 => res += vars.get_var(vals.1, self, vals.2).as_str(),
+                        3 => res += format!("({})", vals.1).as_str(),
+                        8 => res += vals.1.as_str(),
+                        _ => {
+                            res += vals.1.as_str();
+                        }
                     }
                 }
             }

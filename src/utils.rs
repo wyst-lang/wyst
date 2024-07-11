@@ -51,22 +51,40 @@ pub struct Variables {
 impl Variables {
     pub fn new() -> Variables {
         Variables {
-            vars: HashMap::from([(
-                "void".to_string(),
-                Variable {
-                    vtype: VariableType::Keyword,
-                    desc: "".to_string(),
-                    state: State {
-                        line: 0,
-                        column: 0,
-                        file: None,
+            vars: HashMap::from([
+                (
+                    "void".to_string(),
+                    Variable {
+                        vtype: VariableType::Keyword,
+                        desc: "".to_string(),
+                        state: State {
+                            line: 0,
+                            column: 0,
+                            file: None,
+                        },
+                        params: Variables {
+                            vars: HashMap::new(),
+                        },
+                        rname: "".to_string(),
                     },
-                    params: Variables {
-                        vars: HashMap::new(),
+                ),
+                (
+                    "println".to_string(),
+                    Variable {
+                        vtype: VariableType::Keyword,
+                        desc: "".to_string(),
+                        state: State {
+                            line: 0,
+                            column: 0,
+                            file: None,
+                        },
+                        params: Variables {
+                            vars: HashMap::new(),
+                        },
+                        rname: "println".to_string(),
                     },
-                    rname: "".to_string(),
-                },
-            )]),
+                ),
+            ]),
         }
     }
     pub fn new_var(&mut self, name: String, state: State, desc: String) -> String {
@@ -173,7 +191,7 @@ impl Variables {
         } else {
             root.problems.push(ProblemCap::Error(Problem {
                 problem_type: ProblemType::VariableNotFound,
-                problem_msg: format!("Variable '{}' doesn't exist", &name),
+                problem_msg: format!("'{}' doesn't exist", &name),
                 state: state,
             }));
             return name;

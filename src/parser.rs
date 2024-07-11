@@ -1,9 +1,32 @@
 use std::usize;
 
+use once_cell::sync::Lazy;
+use regex::Regex;
+
 use crate::{
     transpiler::{State, Transpiler},
     utils::{Problem, ProblemCap, ProblemType, Variables},
 };
+
+pub struct Node {
+    pub regex_pattern: Lazy<Regex>,
+    pub token: u32,
+}
+
+const NODES: [Node; 3] = [
+    Node {
+        token: 1,
+        regex_pattern: Lazy::new(|| Regex::new(r"^(0(x|X)\d+|\d+)").unwrap()),
+    },
+    Node {
+        token: 2,
+        regex_pattern: Lazy::new(|| Regex::new(r"^[.:_a-zA-Z][a-zA-Z0-9_.:]*").unwrap()),
+    },
+    Node {
+        token: 5,
+        regex_pattern: Lazy::new(|| Regex::new(r"^(\;|\!|\=)").unwrap()),
+    },
+];
 
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
@@ -15,6 +38,8 @@ pub enum Token {
     Identifier(String, State),
     Curly(String, State),
     Round(String, State),
+    Operator(String, State),
+    String(String, State),
     // Square(String),
 }
 
@@ -27,6 +52,8 @@ pub fn extract_values(token: Token) -> (u8, String, State) {
         Token::DKeyword(x, state) => (4, x, state),
         Token::SKeyword(x, state) => (5, x, state),
         Token::Keyword(x, state) => (6, x, state),
+        Token::Operator(x, state) => (7, x, state),
+        Token::String(x, state) => (8, x, state),
     }
 }
 
@@ -72,8 +99,28 @@ pub fn get_token(v: String, t: u32, state: State) -> Token {
         },
         3 => Token::Round(v, state),
         4 => Token::Curly(v, state),
+        5 => Token::Operator(v, state),
+        6 => Token::String(v, state),
         _ => Token::Number(String::from(""), state),
     }
+}
+
+pub fn tokenzie_regex(code: String, state: &mut State) -> (u32, String) {
+    let mut token = (0, String::new());
+    if !code.is_empty() {
+        for node in &NODES {
+            if let Some(caps) = node.regex_pattern.captures(&code) {
+                token.0 = node.token;
+                token.1 = caps[0].to_string();
+                state.column += token.1.len() as u32;
+                if token.1.contains("\n") {
+                    state.column = 0;
+                    state.line += token.1.chars().filter(|c| *c == '\n').count() as u32;
+                }
+            }
+        }
+    }
+    token
 }
 
 pub fn tokenize(code: String, state: &mut State, root: &mut Transpiler) -> Vec<Token> {
@@ -91,7 +138,8 @@ pub fn tokenize(code: String, state: &mut State, root: &mut Transpiler) -> Vec<T
     while !code.is_empty() {
         if let Some(c) = code.chars().next() {
             code.remove(0);
-            let mut tval = c;
+            let tc = c.to_string();
+            let mut tval = tc.as_str();
             let mut t: u32 = 0;
             let mut ignore = false;
             state.column += 1;
@@ -127,13 +175,13 @@ pub fn tokenize(code: String, state: &mut State, root: &mut Transpiler) -> Vec<T
                         }
                     }
                     '{' => {
-                        if stoken.0 == 1 {
+                        if stoken.0 == 2 {
                             stoken.1 += 1;
                             token_value += c.to_string().as_str();
                         }
                     }
                     '}' => {
-                        if stoken.0 == 1 {
+                        if stoken.0 == 2 {
                             stoken.1 -= 1;
                             if stoken.1 == 0 {
                                 stoken.0 = 0;
@@ -149,20 +197,35 @@ pub fn tokenize(code: String, state: &mut State, root: &mut Transpiler) -> Vec<T
                             }
                         }
                     }
+                    '"' => {
+                        token_value += c.to_string().as_str();
+                        if stoken.0 == 3 {
+                            stoken.1 -= 1;
+                            if stoken.1 == 0 {
+                                stoken.0 = 0;
+                                tokens.push(get_token(
+                                    token_value.clone(),
+                                    token_type,
+                                    token_state.clone(),
+                                ));
+                                token_type = 0;
+                                token_value = String::new();
+                            }
+                        }
+                    }
+                    '\\' => {
+                        token_value += c.to_string().as_str();
+                        token_value += code
+                            .chars()
+                            .next()
+                            .expect("Error expected a char for \\")
+                            .to_string()
+                            .as_str();
+                    }
                     _ => token_value += c.to_string().as_str(),
                 }
             } else {
                 match c {
-                    '0'..='9' => {
-                        if token_type == 2 {
-                            t = 2;
-                        } else {
-                            t = 1;
-                        }
-                    }
-                    'a'..='z' | 'A'..='Z' => {
-                        t = 2;
-                    }
                     '\t' | ' ' => {
                         ignore = true;
                     }
@@ -174,22 +237,34 @@ pub fn tokenize(code: String, state: &mut State, root: &mut Transpiler) -> Vec<T
                     '(' => {
                         stoken.0 = 1;
                         stoken.1 = 1;
-                        tval = ' ';
+                        tval = " ";
                         t = 3;
                     }
                     '{' => {
                         stoken.0 = 2;
                         stoken.1 = 1;
-                        tval = ' ';
+                        tval = " ";
                         t = 4;
                     }
-                    x => {
-                        root.problems.push(ProblemCap::Error(Problem {
-                            problem_msg: format!("Invalid character '{}'", x,),
-                            problem_type: ProblemType::SyntaxError,
-                            state: state.clone(),
-                        }));
+                    '"' => {
+                        stoken.0 = 3;
+                        stoken.1 = 1;
+                        t = 6;
                         ignore = true;
+                    }
+                    x => {
+                        ignore = true;
+                        let vals = tokenzie_regex(format!("{}{}", c, code.clone()), state);
+                        if vals.0 != 0 {
+                            tokens.push(get_token(vals.1.clone(), vals.0, state.clone()));
+                            code.drain(0..vals.1.len() - 1);
+                        } else {
+                            root.problems.push(ProblemCap::Error(Problem {
+                                problem_msg: format!("Invalid syntax '{}'", x,),
+                                problem_type: ProblemType::SyntaxError,
+                                state: state.clone(),
+                            }));
+                        }
                     }
                 }
                 if token_type != t && token_type != 0 {
