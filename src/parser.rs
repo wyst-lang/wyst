@@ -9,9 +9,9 @@ pub fn parse(input: String, rule: Rule) {
     match WystParser::parse(rule, &input) {
         Ok(parsed) => {
             for pair in parsed {
-                for inner in pair.into_inner() {
-                    println!("{:?}", inner.into_inner())
-                }
+                println!("---------START--------");
+                println!("{:?}", pair);
+                println!("---------END--------");
             }
             // println!("{:#?}", parsed);
         }

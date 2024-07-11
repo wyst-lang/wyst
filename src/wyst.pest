@@ -1,6 +1,10 @@
 WHITESPACE = _{ " " | "\t" | "\n" }
 
+
 // [literals]
+filepath = { ("/" | identifier | "-" | "." )+ }
+include = { "#" ~ "include" ~ "\"" ~ filepath ~ "\"" }
+include_global = { "#" ~ "include" ~ "<" ~ filepath ~ ">" }
 round = { "(" ~ (expr)* ~ ")" }
 curly = { "{" ~ (code_expr)* ~ "}" }
 escape = { "\\" ~ ANY }
@@ -23,7 +27,7 @@ var_def = { identifier ~ identifier }
 var_def_set = { var_def ~ "=" ~ expr ~ semicolon }
 func_def = { identifier ~ identifier ~ round ~ curly }
 
-expr = {(
+expr = {
     round |
     curly |
     char |
@@ -32,27 +36,18 @@ expr = {(
     int |
     bool |
     identifier |
-    string |
-    semicolon
-)+}
+    string
+}
 
-code_expr = {(
-    round |
-    curly |
-    char |
+code_expr = {
     var_def_set |
-    (var_def ~ semicolon) |
-    hex |
-    float |
-    int |
-    bool |
-    // identifier |
-    string |
-    semicolon
-)+}
+    (var_def ~ semicolon)
+}
 
 top_expr = {
     (
-        func_def
+        func_def |
+        include |
+        include_global
     )+
 }
