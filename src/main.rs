@@ -1,9 +1,9 @@
 use std::{fs, process};
 
 mod compiler;
-mod parser;
 mod transpiler;
 mod utils;
+
 use clap::{App, Arg};
 use compiler::{compile_rust, transpile};
 

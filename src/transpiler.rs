@@ -1,8 +1,13 @@
-use crate::{
-    parser::{self, Rule},
-    utils::{ProblemCap, Variables},
-};
+use pest::iterators::{Pair, Pairs};
+use crate::utils::{ProblemCap};
 use serde::{Deserialize, Serialize};
+
+// The Parser
+use pest::Parser;
+use pest_derive::Parser;
+#[derive(Parser)]
+#[grammar = "wyst.pest"]
+pub struct WystParser;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct State {
@@ -13,7 +18,6 @@ pub struct State {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Transpiler {
-    pub matched_vars: Variables,
     pub problems: Vec<ProblemCap>,
     pub state: State,
     pub inject: Inject,
@@ -40,7 +44,6 @@ impl Default for Inject {
 impl Default for Transpiler {
     fn default() -> Self {
         Transpiler {
-            matched_vars: Variables::new(),
             inject: Inject::default(),
             problems: Vec::new(),
             state: State {
@@ -52,74 +55,72 @@ impl Default for Transpiler {
     }
 }
 
+pub fn to_indexable(pairs: Pairs<Rule>) -> Vec<Pair<Rule>> {
+    let mut arr: Vec<Pair<Rule>> = Vec::new();
+    for pair in pairs {arr.push(pair)}
+    arr
+
+}
+
 impl Transpiler {
-    pub fn transpile(&mut self, code: String, indent: usize, vars: &mut Variables) -> String {
-        // args: code, vars, &mut self.state.clone(), self
-        let ast = parser::parse(code, Rule::top_expr);
+    pub fn transpile_pairs(&mut self, pairs: Pairs<Rule>) -> String {
         let mut res = String::new();
+        for pair in pairs {
+            res+=self.transpile(pair).as_str();
+        }
+        res
+    }
+    pub fn transpile(&mut self, pair: Pair<Rule>) -> String {
+        let mut res = String::new();
+        let tokens = to_indexable(pair.clone().into_inner());
+        match pair.as_rule() {
+            Rule::func_def => {
+                res += format!("fn {}({}) -> {} {}", tokens[1].as_str(),
+                               self.transpile_pairs(tokens[2].clone().into_inner()).as_str(),
+                               tokens[0].as_str(),
+                               self.transpile(tokens[3].clone())
+                ).as_str();
+            }
+            Rule::var_def => {
+                res += format!("let mut {}: {}", tokens[1].as_str(), tokens[0].as_str()).as_str();
+            }
+            Rule::curly => {
+                res += "{";
+                res += &self.transpile_pairs(pair.clone().into_inner());
+                res += "}";
+            }
+            Rule::code_expr => {
+                res += &self.transpile_pairs(pair.clone().into_inner());
+            }
+            //TODO: use LibManager to manage the includes
+            Rule::include_global => {}
+            Rule::include => {}
+
+            _ => {
+                res += " ";
+                res += pair.as_str();
+                res += " ";
+            }
+        }
+        res
+    }
+    pub fn transpile_code(&mut self, code: String, indent: usize) -> String {
+        let mut res = String::new();
+        match WystParser::parse(Rule::top_expr, &code) {
+            Ok(parsed) => {
+                for pair in parsed {
+                    res += self.transpile_pairs(pair.into_inner()).as_str();
+                }
+            }
+            Err(e) => {
+                // println!("err: {}", e.line());
+                println!("{}", e);
+            }
+        }
         if indent > 0 {
             res += " ".repeat(indent * 2).as_str();
         }
-        // for a in ast {
-        //     let astval = extract_ast(a.clone());
-        //     if self.inject.inject {
-        //         for val in astval {
-        //             if val.contains("list_vx") {
-        //                 for (name, var) in vars.clone().iter_mut() {
-        //                     if self.inject.state.line > var.state.line
-        //                         || var.vtype != VariableType::Var
-        //                     {
-        //                         self.matched_vars.vars.insert(name.clone(), var.clone());
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     match a {
-        //         Ast::Variable(var_type, var_name) => {
-        //             res += format!("let mut {}: {}", var_name, var_type).as_str();
-        //         }
-        //         Ast::Function(var_type, var_name, round, curly) => {
-        //             res += format!(
-        //                 "fn {}({}) -> {} {}\n{}{}\n",
-        //                 var_name,
-        //                 round,
-        //                 var_type,
-        //                 "{",
-        //                 self.transpile(curly, indent + 1, &mut vars.clone()),
-        //                 "}"
-        //             )
-        //             .as_str();
-        //         }
-        //         Ast::Struct(name, curly) => {
-        //             res += format!(
-        //                 "struct {} {}\n{}{}\n",
-        //                 name,
-        //                 "{",
-        //                 self.transpile(curly, indent + 1, &mut vars.clone()),
-        //                 "}"
-        //             )
-        //             .as_str()
-        //         }
-        //         Ast::Rust(rs) => {
-        //             res += "{";
-        //             res += rs.as_str();
-        //             res += "}";
-        //         }
-        //         Ast::Single(x) => {
-        //             println!("{:?}", x);
-        //             let vals = extract_values(x);
-        //             match vals.0 {
-        //                 2 => res += vars.get_var(vals.1, self, vals.2).as_str(),
-        //                 3 => res += format!("({})", vals.1).as_str(),
-        //                 8 => res += vals.1.as_str(),
-        //                 _ => {
-        //                     res += vals.1.as_str();
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+
         if indent > 0 {
             res += "\n";
             res += " ".repeat((indent - 1) * 2).as_str();

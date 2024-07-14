@@ -2,7 +2,7 @@ use std::{fs, path::Path, process::Command};
 
 use crate::{
     transpiler::{State, Transpiler},
-    utils::{Problem, ProblemCap, ProblemType, Variables},
+    utils::{Problem, ProblemCap, ProblemType},
 };
 
 pub fn transpile(input_file: String, output_file: String, is_main: bool) -> u8 {
@@ -10,23 +10,23 @@ pub fn transpile(input_file: String, output_file: String, is_main: bool) -> u8 {
     let mut trsp = Transpiler {
         ..Default::default()
     };
-    let mut vars = Variables::new();
     if let Ok(file_contents) = fs::read_to_string(input_file) {
-        let mut output_code = trsp.transpile(file_contents, 0, &mut vars);
+        let output_code = trsp.transpile_code(file_contents, 0);
+        println!("{output_code}");
         if is_main {
-            output_code += "fn main() {";
-            output_code += vars
-                .get_var(
-                    "main".to_string(),
-                    &mut trsp,
-                    State {
-                        line: 0,
-                        column: 0,
-                        file: None,
-                    },
-                )
-                .as_str();
-            output_code += "();}";
+            // output_code += "fn main() {";
+            // output_code += vars
+            //     .get_var(
+            //         "main".to_string(),
+            //         &mut trsp,
+            //         State {
+            //             line: 0,
+            //             column: 0,
+            //             file: None,
+            //         },
+            //     )
+            //     .as_str();
+            // output_code += "();}";
         }
         if let Ok(_) = fs::write(Path::new("build").join(output_file), output_code) {}
     } else {

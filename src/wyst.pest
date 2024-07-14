@@ -1,18 +1,20 @@
 WHITESPACE = _{ " " | "\t" | "\n" }
 
+// [chars]
+comma = {","}
+semicolon = {";"}
 
 // [literals]
-filepath = { ("/" | identifier | "-" | "." )+ }
+filepath = { ("/"|('a'..'z' | 'a'..'z' | '0'..'9' | "_" | "-" | "."))+ }
 include = { "#" ~ "include" ~ "\"" ~ filepath ~ "\"" }
 include_global = { "#" ~ "include" ~ "<" ~ filepath ~ ">" }
-round = { "(" ~ (expr)* ~ ")" }
+round = { "(" ~ ((expr ~ comma)* ~ expr?) ~ ")" }
 curly = { "{" ~ (code_expr)* ~ "}" }
 escape = { "\\" ~ ANY }
 raw_string = { (!("\\" | "\"") ~ ANY)+ }
 string = { "\"" ~ (raw_string | escape )* ~ "\"" }
 char = { "'" ~ (escape | ANY) ~ "'" }
 bool = @{"true" | "false"}
-semicolon = {";"}
 
 // [numbers]
 hex = @{ "0" ~ ("x"|"X") ~ ('0'..'9' | 'a'..'f' | 'A'..'F')*}
@@ -20,14 +22,18 @@ float = @{ ('0'..'9')* ~ "." ~ ('0'..'9')+ }
 int = @{ '0'..'9'+ }
 
 // [identifiers]
-identifier = @{ !(hex|float|int) ~ ("_" | 'a'..'z' | 'a'..'z') ~ ( "_" | 'a'..'z' | 'a'..'z' | int )* }
+identifier = @{ !(hex|float|int) ~ ("." | "::" | "_" | 'a'..'z' | 'A'..'Z') ~ ( "." | "::" | "_" | 'a'..'z' | 'A'..'Z' | int )*}
+def_identifier = {identifier ~ ("<" ~ ((def_identifier ~ comma)* ~ def_identifier?) ~ ">")?}
 
 // [definitions]
-var_def = { identifier ~ identifier }
-var_def_set = { var_def ~ "=" ~ expr ~ semicolon }
-func_def = { identifier ~ identifier ~ round ~ curly }
+round_def = { "(" ~ ((var_def ~ comma)* ~ var_def?) ~ ")" }
+var_def = { def_identifier ~ identifier }
+var_def_set = { var_def ~ "=" ~ expr }
+var_set = { def_identifier ~ "=" ~ expr }
+func_def = { def_identifier ~ identifier ~ round_def ~ curly }
 
 expr = {
+    (identifier ~ round) |
     round |
     curly |
     char |
@@ -40,14 +46,16 @@ expr = {
 }
 
 code_expr = {
-    var_def_set |
-    (var_def ~ semicolon)
+    (var_def_set ~ semicolon) |
+    (var_def ~ semicolon) |
+    (var_set ~ semicolon) |
+    (expr ~ semicolon)
 }
 
 top_expr = {
     (
-        func_def |
         include |
-        include_global
+        include_global |
+        func_def
     )+
 }
