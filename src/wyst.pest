@@ -57,5 +57,5 @@ top_expr = {
         include |
         include_global |
         func_def
-    )+
+    )* ~ !ANY
 }

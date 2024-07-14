@@ -75,9 +75,9 @@ impl Transpiler {
         let tokens = to_indexable(pair.clone().into_inner());
         match pair.as_rule() {
             Rule::func_def => {
-                res += format!("fn {}({}) -> {} {}", tokens[1].as_str(),
+                res += format!("fn {}({}) -> {} {}", self.transpile(tokens[1].clone()),
                                self.transpile_pairs(tokens[2].clone().into_inner()).as_str(),
-                               tokens[0].as_str(),
+                               self.transpile(tokens[0].clone()),
                                self.transpile(tokens[3].clone())
                 ).as_str();
             }
@@ -96,6 +96,22 @@ impl Transpiler {
             Rule::include_global => {}
             Rule::include => {}
 
+            Rule::identifier => {
+                let ident = pair.as_str().trim();
+                res+=match ident {
+                    "void" => {"()"}
+                    _ => {ident}
+                };
+            }
+
+            Rule::def_identifier => {
+                let ident = pair.as_str().trim();
+                res+=match ident {
+                    "void" => {"()"}
+                    _ => {ident}
+                };
+            }
+
             _ => {
                 res += " ";
                 res += pair.as_str();
@@ -113,7 +129,6 @@ impl Transpiler {
                 }
             }
             Err(e) => {
-                // println!("err: {}", e.line());
                 println!("{}", e);
             }
         }

@@ -1,4 +1,5 @@
 use std::{fs, path::Path, process::Command};
+use std::str;
 
 use crate::{
     transpiler::{State, Transpiler},
@@ -65,10 +66,15 @@ pub fn transpile(input_file: String, output_file: String, is_main: bool) -> u8 {
 }
 
 pub fn compile_rust(exe_file: String) {
-    Command::new("rustc")
+    let output = Command::new("rustc")
         .arg(Path::new("build").join("main.rs"))
         .arg("-o")
         .arg(exe_file)
         .output()
         .expect("Error compiling rust: ");
+    if &output.stderr.len() == &0 {
+        println!("Compiled successfully");
+    } else {
+        println!("{}", str::from_utf8(&output.stderr).expect("Error encoding stderr"));
+    }
 }
