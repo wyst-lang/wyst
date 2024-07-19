@@ -1,11 +1,10 @@
 use std::{fs, process};
-
 mod compiler;
 mod transpiler;
 mod utils;
 
 use clap::{App, Arg};
-use compiler::{compile_rust, transpile};
+use compiler::{compile_rust, transpile_file};
 
 fn main() {
     let matches = App::new("Wyst")
@@ -44,8 +43,10 @@ fn main() {
         let file = matches.value_of("file").unwrap().to_string();
         let output = matches.value_of("output").unwrap_or("out").to_string();
         if let Ok(_) = fs::create_dir("build") {}
-        let ecode = transpile(file, "main.rs".to_string(), true);
-        compile_rust(output);
+        let ecode = transpile_file(file, "main.rs".to_string(), true);
+        if ecode == 0 {
+            compile_rust(output);
+        }
         if !matches.is_present("build") {
             fs::remove_dir_all("build").expect("Error removing build");
         }

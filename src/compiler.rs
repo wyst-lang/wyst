@@ -6,30 +6,29 @@ use crate::{
     utils::{Problem, ProblemCap, ProblemType},
 };
 
-pub fn transpile(input_file: String, output_file: String, is_main: bool) -> u8 {
+pub fn transpile_file(input_file: String, output_file: String, is_main: bool) -> u8 {
     let mut ecode: u8 = 0;
     let mut trsp = Transpiler {
         ..Default::default()
     };
     if let Ok(file_contents) = fs::read_to_string(input_file) {
-        let output_code = trsp.transpile_code(file_contents, 0);
-        println!("{output_code}");
-        if is_main {
-            // output_code += "fn main() {";
-            // output_code += vars
-            //     .get_var(
-            //         "main".to_string(),
-            //         &mut trsp,
-            //         State {
-            //             line: 0,
-            //             column: 0,
-            //             file: None,
-            //         },
-            //     )
-            //     .as_str();
-            // output_code += "();}";
+        let mut module_code = String::new();
+        let mut output_code = String::new();
+        match trsp.transpile_code(file_contents, 0) {
+            Ok(rcode) => output_code+=rcode.as_str(),
+            Err(e) => {ecode=1;println!("{e}")}
         }
-        if let Ok(_) = fs::write(Path::new("build").join(output_file), output_code) {}
+        if is_main {
+            for module in trsp.clone().mod_manager.modules {
+                module_code += "mod ";
+                module_code += module.rs_mod.as_str();
+                module_code += ";\n";
+            }
+        }
+        output_code = format!("{module_code}\n{output_code}");
+        if let Ok(_) = fs::write(Path::new("build").join(output_file), output_code) {
+            trsp.problems.append(&mut trsp.mod_manager.write());
+        }
     } else {
         trsp.problems.push(ProblemCap::Error(Problem {
             problem_msg: "File not found".to_string(),
@@ -69,11 +68,11 @@ pub fn compile_rust(exe_file: String) {
     let output = Command::new("rustc")
         .arg(Path::new("build").join("main.rs"))
         .arg("-o")
-        .arg(exe_file)
+        .arg(exe_file.clone())
         .output()
         .expect("Error compiling rust: ");
     if &output.stderr.len() == &0 {
-        println!("Compiled successfully");
+        println!("Compiled successfully: \x1b[34;4m{}", exe_file.clone());
     } else {
         println!("{}", str::from_utf8(&output.stderr).expect("Error encoding stderr"));
     }

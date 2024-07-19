@@ -1,9 +1,9 @@
 use pest::iterators::{Pair, Pairs};
-use crate::utils::{ProblemCap};
+use crate::utils::{ModManager, ProblemCap};
 use serde::{Deserialize, Serialize};
 
 // The Parser
-use pest::Parser;
+use pest::{Parser, error::Error};
 use pest_derive::Parser;
 #[derive(Parser)]
 #[grammar = "wyst.pest"]
@@ -16,13 +16,16 @@ pub struct State {
     pub file: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Transpiler {
     pub problems: Vec<ProblemCap>,
     pub state: State,
     pub inject: Inject,
+    pub mod_manager: ModManager,
 }
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Inject {
     pub state: State,
     pub inject: bool,
@@ -46,6 +49,7 @@ impl Default for Transpiler {
         Transpiler {
             inject: Inject::default(),
             problems: Vec::new(),
+            mod_manager: ModManager::new(),
             state: State {
                 line: 1,
                 column: 0,
@@ -75,7 +79,7 @@ impl Transpiler {
         let tokens = to_indexable(pair.clone().into_inner());
         match pair.as_rule() {
             Rule::func_def => {
-                res += format!("fn {}({}) -> {} {}", self.transpile(tokens[1].clone()),
+                res += format!("pub fn {}({}) -> {} {}\n", self.transpile(tokens[1].clone()),
                                self.transpile_pairs(tokens[2].clone().into_inner()).as_str(),
                                self.transpile(tokens[0].clone()),
                                self.transpile(tokens[3].clone())
@@ -92,16 +96,29 @@ impl Transpiler {
             Rule::code_expr => {
                 res += &self.transpile_pairs(pair.clone().into_inner());
             }
-            //TODO: use LibManager to manage the includes
-            Rule::include_global => {}
-            Rule::include => {}
+
+            Rule::include_global => {
+                res += "#[allow(unused_imports)]\nuse ";
+                res += self.mod_manager.add(tokens[0].as_str().to_string(), true).as_str();
+                res += "::*;\n";
+            }
+            Rule::include => {
+                res += "#[allow(unused_imports)]\nuse ";
+                res += self.mod_manager.add(tokens[0].as_str().to_string(), false).as_str();
+                res += "::*;\n";
+            }
 
             Rule::identifier => {
                 let ident = pair.as_str().trim();
-                res+=match ident {
-                    "void" => {"()"}
-                    _ => {ident}
-                };
+                if self.mod_manager.macros.contains(&ident.to_string()) {
+                    res+=ident;
+                    res+="!";
+                } else {
+                    res+=match ident {
+                        "void" => {"()"}
+                        _ => {ident}
+                    };
+                }
             }
 
             Rule::def_identifier => {
@@ -112,6 +129,26 @@ impl Transpiler {
                 };
             }
 
+            Rule::call => {
+                res += " ";
+                res += self.transpile(tokens[0].clone()).as_str();
+                res += self.transpile(tokens[1].clone()).as_str();
+            }
+
+            Rule::round => {
+                res += "(";
+                res += self.transpile_pairs(pair.into_inner()).as_str();
+                res += ")";
+            }
+
+            Rule::expr => {
+                res += self.transpile_pairs(pair.into_inner()).as_str();
+            }
+
+            Rule::expr_ => {
+                res += self.transpile_pairs(pair.into_inner()).as_str();
+            }
+
             _ => {
                 res += " ";
                 res += pair.as_str();
@@ -120,7 +157,7 @@ impl Transpiler {
         }
         res
     }
-    pub fn transpile_code(&mut self, code: String, indent: usize) -> String {
+    pub fn transpile_code(&mut self, code: String, indent: usize) -> Result<String, Error<Rule>> {
         let mut res = String::new();
         match WystParser::parse(Rule::top_expr, &code) {
             Ok(parsed) => {
@@ -129,7 +166,7 @@ impl Transpiler {
                 }
             }
             Err(e) => {
-                println!("{}", e);
+                return Err(e);
             }
         }
         if indent > 0 {
@@ -140,6 +177,6 @@ impl Transpiler {
             res += "\n";
             res += " ".repeat((indent - 1) * 2).as_str();
         }
-        res
+        Ok(res)
     }
 }

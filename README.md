@@ -7,11 +7,9 @@
 
 <h3 align="center">Wyst is a programing language that has similar syntax to C and transpiles to Rust</h3>
 
-<<<<<<< HEAD
-# Re Write
-We are re-writing the parser and transpiler due to the messy code that is very hard to expand
-=======
+# Hello World
 ```c
+// main.wst
 #include <stdio.h>
 
 int main() {
@@ -19,7 +17,11 @@ int main() {
   return 0;
 }
 ```
->>>>>>> 30ed01f (Update README.md)
+
+# Compile it
+```bash
+wyst main.wst -o <output_file>
+```
 
 # Alpha
 We are on pure alpha. if you would like to contribute please open a new issue.
