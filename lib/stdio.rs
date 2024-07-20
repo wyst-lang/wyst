@@ -1,6 +1,7 @@
 #[macro_export]
-macro_rules! printf {
+
+macro_rules! _0x7072696e7466 {
     ($($arg:tt)*) => {
-        println!($($arg)*);
+        print!($($arg)*);
     };
 }

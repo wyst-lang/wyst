@@ -1,9 +1,9 @@
-use pest::iterators::{Pair, Pairs};
 use crate::utils::{ModManager, ProblemCap};
+use pest::iterators::{Pair, Pairs};
 use serde::{Deserialize, Serialize};
 
 // The Parser
-use pest::{Parser, error::Error};
+use pest::{error::Error, Parser};
 use pest_derive::Parser;
 #[derive(Parser)]
 #[grammar = "wyst.pest"]
@@ -61,16 +61,17 @@ impl Default for Transpiler {
 
 pub fn to_indexable(pairs: Pairs<Rule>) -> Vec<Pair<Rule>> {
     let mut arr: Vec<Pair<Rule>> = Vec::new();
-    for pair in pairs {arr.push(pair)}
+    for pair in pairs {
+        arr.push(pair)
+    }
     arr
-
 }
 
 impl Transpiler {
     pub fn transpile_pairs(&mut self, pairs: Pairs<Rule>) -> String {
         let mut res = String::new();
         for pair in pairs {
-            res+=self.transpile(pair).as_str();
+            res += self.transpile(pair).as_str();
         }
         res
     }
@@ -79,11 +80,15 @@ impl Transpiler {
         let tokens = to_indexable(pair.clone().into_inner());
         match pair.as_rule() {
             Rule::func_def => {
-                res += format!("pub fn {}({}) -> {} {}\n", self.transpile(tokens[1].clone()),
-                               self.transpile_pairs(tokens[2].clone().into_inner()).as_str(),
-                               self.transpile(tokens[0].clone()),
-                               self.transpile(tokens[3].clone())
-                ).as_str();
+                res += format!(
+                    "pub fn {}({}) -> {} {}\n",
+                    self.transpile(tokens[1].clone()),
+                    self.transpile_pairs(tokens[2].clone().into_inner())
+                        .as_str(),
+                    self.transpile(tokens[0].clone()),
+                    self.transpile(tokens[3].clone())
+                )
+                .as_str();
             }
             Rule::var_def => {
                 res += format!("let mut {}: {}", tokens[1].as_str(), tokens[0].as_str()).as_str();
@@ -99,34 +104,33 @@ impl Transpiler {
 
             Rule::include_global => {
                 res += "#[allow(unused_imports)]\nuse ";
-                res += self.mod_manager.add(tokens[0].as_str().to_string(), true).as_str();
+                res += self
+                    .mod_manager
+                    .add(tokens[0].as_str().to_string(), true)
+                    .as_str();
                 res += "::*;\n";
             }
             Rule::include => {
                 res += "#[allow(unused_imports)]\nuse ";
-                res += self.mod_manager.add(tokens[0].as_str().to_string(), false).as_str();
+                res += self
+                    .mod_manager
+                    .add(tokens[0].as_str().to_string(), false)
+                    .as_str();
                 res += "::*;\n";
             }
 
-            Rule::identifier => {
+            Rule::identifier | Rule::def_identifier => {
                 let ident = pair.as_str().trim();
-                if self.mod_manager.macros.contains(&ident.to_string()) {
-                    res+=ident;
-                    res+="!";
+                let ident_rs = format!("_0x{}", hex::encode(ident.as_bytes()));
+                if self.mod_manager.macros.contains(&ident_rs) {
+                    res += ident_rs.as_str();
+                    res += "!";
                 } else {
-                    res+=match ident {
-                        "void" => {"()"}
-                        _ => {ident}
+                    res += match ident {
+                        "void" => "()",
+                        _ => ident_rs.as_str(),
                     };
                 }
-            }
-
-            Rule::def_identifier => {
-                let ident = pair.as_str().trim();
-                res+=match ident {
-                    "void" => {"()"}
-                    _ => {ident}
-                };
             }
 
             Rule::call => {

@@ -1,5 +1,5 @@
-use std::{fs, path::Path, process::Command};
 use std::str;
+use std::{fs, path::Path, process::Command};
 
 use crate::{
     transpiler::{State, Transpiler},
@@ -15,8 +15,11 @@ pub fn transpile_file(input_file: String, output_file: String, is_main: bool) ->
         let mut module_code = String::new();
         let mut output_code = String::new();
         match trsp.transpile_code(file_contents, 0) {
-            Ok(rcode) => output_code+=rcode.as_str(),
-            Err(e) => {ecode=1;println!("{e}")}
+            Ok(rcode) => output_code += rcode.as_str(),
+            Err(e) => {
+                ecode = 1;
+                println!("{e}")
+            }
         }
         if is_main {
             for module in trsp.clone().mod_manager.modules {
@@ -25,7 +28,12 @@ pub fn transpile_file(input_file: String, output_file: String, is_main: bool) ->
                 module_code += ";\n";
             }
         }
-        output_code = format!("{module_code}\n{output_code}");
+        output_code = format!(
+            "{module_code}\n{output_code}\nfn main() {}{}{}",
+            "{_0x",
+            hex::encode("main"),
+            "();}"
+        );
         if let Ok(_) = fs::write(Path::new("build").join(output_file), output_code) {
             trsp.problems.append(&mut trsp.mod_manager.write());
         }
@@ -74,6 +82,9 @@ pub fn compile_rust(exe_file: String) {
     if &output.stderr.len() == &0 {
         println!("Compiled successfully: \x1b[34;4m{}", exe_file.clone());
     } else {
-        println!("{}", str::from_utf8(&output.stderr).expect("Error encoding stderr"));
+        println!(
+            "{}",
+            str::from_utf8(&output.stderr).expect("Error encoding stderr")
+        );
     }
 }
