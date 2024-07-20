@@ -7,20 +7,13 @@
 
 <h3 align="center">Wyst is a programing language that has similar syntax to C and transpiles to Rust</h3>
 
-# Hello World
 ```c
-// main.wst
 #include <stdio.h>
 
 int main() {
   printf("Hello, World!");
   return 0;
 }
-```
-
-# Compile it
-```bash
-wyst main.wst -o <output_file>
 ```
 
 # Alpha
