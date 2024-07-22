@@ -1,4 +1,5 @@
 WHITESPACE = _{ " " | "\t" | "\n" }
+wspc = { " " | "\t" | "\n" }
 
 // [chars]
 comma = {","}
@@ -15,6 +16,7 @@ raw_string = { (!("\\" | "\"") ~ ANY)+ }
 string = { "\"" ~ (raw_string | escape )* ~ "\"" }
 char = { "'" ~ (escape | ANY) ~ "'" }
 bool = @{"true" | "false"}
+keyword = @{"struct"}
 
 // [numbers]
 hex = @{ "0" ~ ("x"|"X") ~ ('0'..'9' | 'a'..'f' | 'A'..'F')*}
@@ -27,10 +29,12 @@ def_identifier = {identifier ~ ("<" ~ ((def_identifier ~ comma)* ~ def_identifie
 
 // [definitions]
 round_def = { "(" ~ ((var_def ~ comma)* ~ var_def?) ~ ")" }
+curly_def = { "{" ~ (var_def ~ semicolon)* ~ "}" }
 var_def = { def_identifier ~ identifier }
 var_def_set = { var_def ~ "=" ~ expr }
 var_set = { def_identifier ~ "=" ~ expr }
 func_def = { def_identifier ~ identifier ~ round_def ~ curly }
+struct_def = { "struct" ~ identifier ~ curly_def }
 
 rust_macro_lint = { "macro_rules" ~ "!" ~ identifier }
 rust_code = { (rust_macro_lint | ANY)* }
@@ -70,6 +74,7 @@ top_expr = {
     (
         include |
         include_global |
-        func_def
+        func_def |
+        struct_def
     )* ~ !ANY
 }

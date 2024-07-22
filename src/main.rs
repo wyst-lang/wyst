@@ -9,7 +9,7 @@ use compiler::{compile_rust, transpile_file};
 fn main() {
     let matches = App::new("Wyst")
         .version("0.51")
-        .author("Leo dev")
+        .author("Orus")
         .about("The wyst compiler")
         .arg(
             Arg::with_name("file")

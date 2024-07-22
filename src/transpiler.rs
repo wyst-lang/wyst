@@ -91,7 +91,20 @@ impl Transpiler {
                 .as_str();
             }
             Rule::var_def => {
-                res += format!("let mut {}: {}", tokens[1].as_str(), tokens[0].as_str()).as_str();
+                res += format!(
+                    "let mut {}: {}",
+                    self.transpile(tokens[1].clone()),
+                    self.transpile(tokens[0].clone())
+                )
+                .as_str();
+            }
+            Rule::var_def_set => {
+                res += format!(
+                    "{} = {}",
+                    self.transpile(tokens[0].clone()),
+                    self.transpile(tokens[1].clone()),
+                )
+                .as_str();
             }
             Rule::curly => {
                 res += "{";
@@ -128,6 +141,7 @@ impl Transpiler {
                 } else {
                     res += match ident {
                         "void" => "()",
+                        "int" => "i32",
                         _ => ident_rs.as_str(),
                     };
                 }
@@ -151,6 +165,22 @@ impl Transpiler {
 
             Rule::expr_ => {
                 res += self.transpile_pairs(pair.into_inner()).as_str();
+            }
+
+            Rule::struct_def => {
+                res += "struct ";
+                res += self.transpile(tokens[0].clone()).as_str();
+                res += "{";
+                res += self.transpile(tokens[1].clone()).as_str();
+                res += "}";
+            }
+
+            Rule::semicolon => {
+                res += ";\n";
+            }
+
+            Rule::string => {
+                res += pair.as_str();
             }
 
             _ => {
