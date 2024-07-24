@@ -13,7 +13,7 @@ fn main() {
         .about("The wyst compiler")
         .arg(
             Arg::with_name("file")
-                .required(true)
+                .required_unless_one(&["stdio", "hex"])
                 .help("Sets the input file to use"),
         )
         .arg(
@@ -35,10 +35,19 @@ fn main() {
                 .long("stdio")
                 .help("LSP Mode"),
         )
+        .arg(
+            Arg::with_name("hex")
+                .short('h')
+                .long("hex")
+                .takes_value(true)
+                .help("Turn an identifier into hex"),
+        )
         .get_matches();
-
     if matches.is_present("stdio") {
         println!("stdio mode!");
+    } else if matches.is_present("hex") {
+        let ident = matches.value_of("hex").unwrap().to_string();
+        println!("_0x{}", hex::encode(ident));
     } else {
         let file = matches.value_of("file").unwrap().to_string();
         let output = matches.value_of("output").unwrap_or("out").to_string();

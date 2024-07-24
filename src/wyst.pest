@@ -1,4 +1,4 @@
-WHITESPACE = _{ " " | "\t" | "\n" }
+WHITESPACE = _{ ("//" ~ (!"\n" ~ ANY)*) | ("/*" ~ (!"*/" ~ ANY)*) | " " | "\t" | "\n" }
 wspc = { " " | "\t" | "\n" }
 
 // [chars]
@@ -17,6 +17,7 @@ string = { "\"" ~ (raw_string | escape )* ~ "\"" }
 char = { "'" ~ (escape | ANY) ~ "'" }
 bool = @{"true" | "false"}
 keyword = @{"struct"}
+map = { "#" ~ "map" ~ identifier ~ comma ~ identifier }
 
 // [numbers]
 hex = @{ "0" ~ ("x"|"X") ~ ('0'..'9' | 'a'..'f' | 'A'..'F')*}
@@ -75,6 +76,11 @@ top_expr = {
         include |
         include_global |
         func_def |
-        struct_def
+        struct_def |
+        map
     )* ~ !ANY
+}
+
+header_expr = {
+  map*
 }

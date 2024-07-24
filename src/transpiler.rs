@@ -68,6 +68,50 @@ pub fn to_indexable(pairs: Pairs<Rule>) -> Vec<Pair<Rule>> {
 }
 
 impl Transpiler {
+    pub fn encode_ident(&mut self, ident: &str) -> String {
+        match WystParser::parse(Rule::def_identifier, ident) {
+            Ok(parsed) => {
+                let mut output = String::new();
+                for pair in parsed {
+                    let tokens = to_indexable(pair.clone().into_inner());
+                    for t in tokens {
+                        match t.as_rule() {
+                            Rule::identifier => {
+                                let ident = t.as_str().trim();
+                                let ident_rs = format!("_0x{}", hex::encode(ident.as_bytes()));
+                                if self.mod_manager.macros.contains(&ident_rs) {
+                                    output += ident_rs.as_str();
+                                    output += "!";
+                                } else {
+                                    output += match ident {
+                                        "void" => "()",
+                                        "int" => "i32",
+                                        "float" => "f64",
+                                        "Vec" => "Vec",
+                                        _ => {
+                                            if self.mod_manager.map.contains_key(ident) {
+                                                self.mod_manager.map.get(ident).unwrap()
+                                            } else {
+                                                ident_rs.as_str()
+                                            }
+                                        }
+                                    };
+                                }
+                            }
+                            Rule::def_identifier => {
+                                output += "<";
+                                output += self.encode_ident(t.as_str()).as_str();
+                                output += ">";
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                output
+            }
+            Err(_) => String::new(),
+        }
+    }
     pub fn transpile_pairs(&mut self, pairs: Pairs<Rule>) -> String {
         let mut res = String::new();
         for pair in pairs {
@@ -119,7 +163,7 @@ impl Transpiler {
                 res += "#[allow(unused_imports)]\nuse ";
                 res += self
                     .mod_manager
-                    .add(tokens[0].as_str().to_string(), true)
+                    .add(&mut self.clone(), tokens[0].as_str().to_string(), true)
                     .as_str();
                 res += "::*;\n";
             }
@@ -127,24 +171,13 @@ impl Transpiler {
                 res += "#[allow(unused_imports)]\nuse ";
                 res += self
                     .mod_manager
-                    .add(tokens[0].as_str().to_string(), false)
+                    .add(&mut self.clone(), tokens[0].as_str().to_string(), false)
                     .as_str();
                 res += "::*;\n";
             }
 
             Rule::identifier | Rule::def_identifier => {
-                let ident = pair.as_str().trim();
-                let ident_rs = format!("_0x{}", hex::encode(ident.as_bytes()));
-                if self.mod_manager.macros.contains(&ident_rs) {
-                    res += ident_rs.as_str();
-                    res += "!";
-                } else {
-                    res += match ident {
-                        "void" => "()",
-                        "int" => "i32",
-                        _ => ident_rs.as_str(),
-                    };
-                }
+                res += self.encode_ident(pair.as_str().trim()).as_str();
             }
 
             Rule::call => {
@@ -181,6 +214,13 @@ impl Transpiler {
 
             Rule::string => {
                 res += pair.as_str();
+            }
+
+            Rule::map => {
+                self.mod_manager.map.insert(
+                    tokens[0].as_str().to_string(),
+                    tokens[2].as_str().to_string(),
+                );
             }
 
             _ => {
