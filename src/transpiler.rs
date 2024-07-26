@@ -78,7 +78,27 @@ impl Transpiler {
                         match t.as_rule() {
                             Rule::identifier => {
                                 let ident = t.as_str().trim();
-                                let ident_rs = format!("_0x{}", hex::encode(ident.as_bytes()));
+                                let mut ident_rs = String::from("_0x");
+                                let mut iter = ident.chars().peekable();
+                                while let Some(current) = iter.next() {
+                                    if iter.peek().is_some() {
+                                        let next = iter.next().unwrap();
+                                        if current == '.' {
+                                            ident_rs += "._0x";
+                                        } else if current == ':' && next == ':' {
+                                            ident_rs += "::_0x";
+                                        } else {
+                                            ident_rs += hex::encode(current.to_string()).as_str();
+                                            ident_rs += hex::encode(next.to_string()).as_str();
+                                        }
+                                    } else {
+                                        if current == '.' {
+                                            ident_rs += "._0x";
+                                        } else {
+                                            ident_rs += hex::encode(current.to_string()).as_str();
+                                        }
+                                    }
+                                }
                                 if self.mod_manager.macros.contains(&ident_rs) {
                                     output += ident_rs.as_str();
                                     output += "!";
@@ -113,6 +133,13 @@ impl Transpiler {
         }
     }
     pub fn transpile_pairs(&mut self, pairs: Pairs<Rule>) -> String {
+        let mut res = String::new();
+        for pair in pairs {
+            res += self.transpile(pair).as_str();
+        }
+        res
+    }
+    pub fn transpile_vec(&mut self, pairs: Vec<Pair<Rule>>) -> String {
         let mut res = String::new();
         for pair in pairs {
             res += self.transpile(pair).as_str();
@@ -223,7 +250,34 @@ impl Transpiler {
                 );
             }
 
+            Rule::enum_def => {
+                res += format!(
+                    "enum {} {}{}{}",
+                    self.transpile(tokens[0].clone()),
+                    "{",
+                    self.transpile_pairs(tokens[1].clone().into_inner()),
+                    "}\n"
+                )
+                .as_str();
+            }
+
+            Rule::ecall => {
+                res += self.transpile(tokens[0].clone()).as_str();
+                if tokens.len() > 1 {
+                    let mut params = tokens.clone();
+                    params.remove(0);
+                    res += "(";
+                    res += self.transpile_vec(params).as_str();
+                    res += ")";
+                }
+            }
+
+            Rule::comma => {
+                res += ",";
+            }
+
             _ => {
+                println!("\x1b[33mUnh: {}\x1b[0m", pair);
                 res += " ";
                 res += pair.as_str();
                 res += " ";
