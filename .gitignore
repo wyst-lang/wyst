@@ -24,7 +24,15 @@ Cargo.lock
 .DS_Store
 
 #Wyst files for testing
-*.wt
+*.wst
+
+
+# Wyst build output taht contains rust files
+/build
+
+# Wyst compiled output
+out
 
 /log.txt
 /lsp.log
+
