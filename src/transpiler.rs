@@ -152,22 +152,47 @@ impl Transpiler {
         match pair.as_rule() {
             Rule::func_def => {
                 res += format!(
-                    "pub fn {}({}) -> {} {}\n",
+                    "pub fn {}({}) -> {} \n{}\n",
                     self.transpile(tokens[1].clone()),
                     self.transpile_pairs(tokens[2].clone().into_inner())
-                        .as_str(),
+                        .as_str()
+                        .replace("let mut", ""),
                     self.transpile(tokens[0].clone()),
                     self.transpile(tokens[3].clone())
                 )
                 .as_str();
             }
-            Rule::var_def => {
+            Rule::ptr_fn_def => {
                 res += format!(
-                    "let mut {}: {}",
+                    "pub fn {}({}) -> &mut {} \n{}\n",
+                    self.transpile(tokens[1].clone()),
+                    self.transpile_pairs(tokens[2].clone().into_inner())
+                        .as_str()
+                        .replace("let mut", ""),
+                    self.transpile(tokens[0].clone()),
+                    self.transpile(tokens[3].clone())
+                )
+                .as_str();
+            }
+            Rule::var_def_ptr => {
+                res += format!(
+                    "let mut {}: &mut {}",
                     self.transpile(tokens[1].clone()),
                     self.transpile(tokens[0].clone())
                 )
                 .as_str();
+            }
+            Rule::var_def => {
+                if tokens.len() == 1 {
+                    res += self.transpile(tokens[0].clone()).as_str();
+                } else {
+                    res += format!(
+                        "let mut {}: {}",
+                        self.transpile(tokens[1].clone()),
+                        self.transpile(tokens[0].clone())
+                    )
+                    .as_str();
+                }
             }
             Rule::var_def_set => {
                 res += format!(
@@ -274,6 +299,31 @@ impl Transpiler {
 
             Rule::comma => {
                 res += ",";
+            }
+
+            Rule::ptr_set => {
+                res += format!(
+                    "*{} = {}",
+                    self.transpile(tokens[0].clone()),
+                    self.transpile(tokens[1].clone()),
+                )
+                .as_str();
+            }
+
+            Rule::int => {
+                res += " ";
+                res += pair.as_str();
+                res += " ";
+            }
+
+            Rule::refrence => {
+                res += "&mut ";
+                res += self.transpile(tokens[0].clone()).as_str();
+            }
+
+            Rule::return_stm => {
+                res += "return ";
+                res += self.transpile(tokens[0].clone()).as_str();
             }
 
             _ => {

@@ -17,7 +17,7 @@ raw_string = { (!("\\" | "\"") ~ ANY)+ }
 string = { "\"" ~ (raw_string | escape )* ~ "\"" }
 char = { "'" ~ (escape | ANY) ~ "'" }
 bool = @{"true" | "false"}
-keyword = @{"struct"}
+keyword = @{"struct"|"return"}
 map = { "#" ~ "map" ~ identifier ~ comma ~ identifier }
 
 // [numbers]
@@ -32,7 +32,8 @@ def_identifier = {identifier ~ ("<" ~ ((def_identifier ~ comma)* ~ def_identifie
 // [definitions]
 round_def = { "(" ~ ((var_def ~ comma)* ~ var_def?) ~ ")" }
 curly_def = { "{" ~ (var_def ~ semicolon)* ~ "}" }
-var_def = { def_identifier ~ identifier }
+var_def = { (def_identifier ~ identifier) | var_def_ptr }
+var_def_ptr = { def_identifier ~ "*" ~ identifier }
 var_def_set = { var_def ~ "=" ~ expr }
 var_set = { def_identifier ~ "=" ~ expr }
 func_def = { def_identifier ~ identifier ~ round_def ~ curly }
@@ -40,6 +41,14 @@ struct_def = { "struct" ~ identifier ~ curly_def }
 ecall = { identifier ~ ( "(" ~ ((def_identifier ~ comma)* ~ def_identifier?) ~ ")" )? }
 ecurly = { "{" ~ ((ecall ~ comma)* ~ ecall?) ~ "}" }
 enum_def = { "enum" ~ identifier ~ ecurly }
+
+// [Ptr]
+ptr_fn_def = { def_identifier ~ "*" ~ identifier ~ round_def ~ curly }
+ptr_set = { "*" ~ identifier ~ "=" ~ expr }
+refrence = { "&" ~ identifier }
+
+// [Statement]
+return_stm = { "return" ~ expr }
 
 rust_macro_lint = { "macro_rules" ~ "!" ~ identifier }
 rust_code = { (rust_macro_lint | ANY)* }
@@ -58,7 +67,8 @@ expr_ = {
     int |
     bool |
     identifier |
-    string
+    string |
+    refrence
 }
 
 expr = {
@@ -69,9 +79,11 @@ expr = {
 
 code_expr = {
     (
+        return_stm |
         var_def_set|
         var_def |
         var_set |
+        ptr_set |
         expr
     ) ~ semicolon
 }
@@ -81,6 +93,7 @@ top_expr = {
         include |
         include_global |
         func_def |
+        ptr_fn_def |
         struct_def |
         enum_def |
         map
