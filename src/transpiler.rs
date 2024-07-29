@@ -79,17 +79,20 @@ impl Transpiler {
                             Rule::identifier => {
                                 let ident = t.as_str().trim();
                                 let mut ident_rs = String::from("_0x");
-                                let mut iter = ident.chars().peekable();
-                                while let Some(current) = iter.next() {
-                                    if iter.peek().is_some() {
-                                        let next = iter.next().unwrap();
+                                let ident_chars: Vec<char> = ident.chars().collect();
+                                for i in 0..ident_chars.len() {
+                                    let current = ident_chars[i];
+                                    if ident_chars.len() > i + 1 {
+                                        let next = ident_chars[i + 1];
                                         if current == '.' {
                                             ident_rs += "._0x";
                                         } else if current == ':' && next == ':' {
                                             ident_rs += "::_0x";
                                         } else {
-                                            ident_rs += hex::encode(current.to_string()).as_str();
-                                            ident_rs += hex::encode(next.to_string()).as_str();
+                                            if current != ':' && current != '.' {
+                                                ident_rs +=
+                                                    hex::encode(current.to_string()).as_str();
+                                            }
                                         }
                                     } else {
                                         if current == '.' {
@@ -108,6 +111,7 @@ impl Transpiler {
                                         "int" => "i32",
                                         "float" => "f64",
                                         "Vec" => "Vec",
+                                        "bool" => "bool",
                                         _ => {
                                             if self.mod_manager.map.contains_key(ident) {
                                                 self.mod_manager.map.get(ident).unwrap()
@@ -248,7 +252,7 @@ impl Transpiler {
                 res += self.transpile_pairs(pair.into_inner()).as_str();
             }
 
-            Rule::expr_ => {
+            Rule::term => {
                 res += self.transpile_pairs(pair.into_inner()).as_str();
             }
 
@@ -324,6 +328,57 @@ impl Transpiler {
             Rule::return_stm => {
                 res += "return ";
                 res += self.transpile(tokens[0].clone()).as_str();
+            }
+
+            Rule::if_stm => {
+                res += "if ";
+                res += self.transpile_pairs(pair.into_inner()).as_str();
+            }
+
+            Rule::else_if_stm => {
+                res += "else if ";
+                res += self.transpile_pairs(pair.into_inner()).as_str();
+            }
+
+            Rule::else_stm => {
+                res += "else ";
+                res += self.transpile_pairs(pair.into_inner()).as_str();
+            }
+
+            Rule::bool => {
+                res += pair.as_str();
+            }
+
+            Rule::operator => {
+                res += pair.as_str();
+            }
+
+            Rule::if_operator => {
+                res += pair.as_str();
+            }
+
+            Rule::if_expr => {
+                res += self.transpile_pairs(pair.into_inner()).as_str();
+            }
+
+            Rule::namespace_def => {
+                res += "mod ";
+                res += self.transpile_pairs(pair.into_inner()).as_str();
+            }
+
+            Rule::top_code => {
+                res += "{";
+                res += self.transpile_pairs(pair.into_inner()).as_str();
+                res += "}";
+            }
+
+            Rule::top_expr => {
+                res += self.transpile_pairs(pair.into_inner()).as_str();
+            }
+
+            Rule::impl_def => {
+                res += "impl ";
+                res += self.transpile_pairs(pair.into_inner()).as_str();
             }
 
             _ => {

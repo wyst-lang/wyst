@@ -1,5 +1,4 @@
 WHITESPACE = _{ ("//" ~ (!"\n" ~ ANY)*) | ("/*" ~ (!"*/" ~ ANY)*) | " " | "\t" | "\n" }
-wspc = { " " | "\t" | "\n" }
 
 // [chars]
 comma = {","}
@@ -41,26 +40,34 @@ struct_def = { "struct" ~ identifier ~ curly_def }
 ecall = { identifier ~ ( "(" ~ ((def_identifier ~ comma)* ~ def_identifier?) ~ ")" )? }
 ecurly = { "{" ~ ((ecall ~ comma)* ~ ecall?) ~ "}" }
 enum_def = { "enum" ~ identifier ~ ecurly }
+top_code = {"{"~ top_expr ~"}"}
+namespace_def = {"namespace" ~ identifier ~ top_code}
+impl_def = {"impl" ~ identifier ~ top_code}
 
 // [Ptr]
 ptr_fn_def = { def_identifier ~ "*" ~ identifier ~ round_def ~ curly }
 ptr_set = { "*" ~ identifier ~ "=" ~ expr }
 refrence = { "&" ~ identifier }
 
+// [Operators]
+if_operator = {"&&"|"||"}
+operator = {"=="}
+if_expr = {expr ~ (if_operator ~ (("("~if_expr*~")")|expr))*}
+
 // [Statement]
 return_stm = { "return" ~ expr }
+if_stm = { "if" ~ if_expr ~ curly }
+else_if_stm = { "else" ~ "if" ~ if_expr ~ curly }
+else_stm = { "else" ~ curly }
 
 rust_macro_lint = { "macro_rules" ~ "!" ~ identifier }
 rust_code = { (rust_macro_lint | ANY)* }
 
-plus = {"+"}
-
 call = {identifier ~ round}
 
-expr_ = {
+term = {
     call |
     round |
-    curly |
     char |
     hex |
     float |
@@ -72,32 +79,37 @@ expr_ = {
 }
 
 expr = {
-    (expr_ ~ plus ~ expr_) |
-    (expr_ ~ dot ~ identifier ~ round?) |
-    expr_
+    (term ~ operator ~ term)+ |
+    (term ~ dot ~ identifier ~ round?) |
+    term
 }
 
 code_expr = {
-    (
+    ((
         return_stm |
         var_def_set|
         var_def |
         var_set |
         ptr_set |
         expr
-    ) ~ semicolon
+    ) ~ semicolon) | 
+    if_stm |
+    else_if_stm |
+    else_stm
 }
 
 top_expr = {
     (
+        func_def |
+        namespace_def |
         include |
         include_global |
-        func_def |
         ptr_fn_def |
         struct_def |
         enum_def |
-        map
-    )* ~ !ANY
+        map |
+        impl_def
+    )*
 }
 
 header_expr = {
