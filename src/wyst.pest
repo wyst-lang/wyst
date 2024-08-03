@@ -18,6 +18,7 @@ char = { "'" ~ (escape | ANY) ~ "'" }
 bool = @{"true" | "false"}
 keyword = @{"struct"|"return"}
 map = { "#" ~ "map" ~ identifier ~ comma ~ identifier }
+match_name = { "<match:" ~ identifier ~ ":" ~ identifier ~ ">" }
 
 // [numbers]
 hex = @{ "0" ~ ("x"|"X") ~ ('0'..'9' | 'a'..'f' | 'A'..'F')*}
@@ -51,8 +52,9 @@ refrence = { "&" ~ identifier }
 
 // [Operators]
 if_operator = {"&&"|"||"}
-operator = {"=="}
+operator = {"=="|"+"|"-"|"!="|">"|"<"|">="|"<="}
 if_expr = {expr ~ (if_operator ~ (("("~if_expr*~")")|expr))*}
+operation = {(term ~ operator)+ ~ term}
 
 // [Statement]
 return_stm = { "return" ~ expr }
@@ -75,11 +77,12 @@ term = {
     bool |
     identifier |
     string |
-    refrence
+    refrence |
+    match_name
 }
 
 expr = {
-    (term ~ operator ~ term)+ |
+    operation |
     (term ~ dot ~ identifier ~ round?) |
     term
 }
@@ -108,7 +111,8 @@ top_expr = {
         struct_def |
         enum_def |
         map |
-        impl_def
+        impl_def |
+        match_name
     )*
 }
 

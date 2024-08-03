@@ -1,6 +1,8 @@
 use crate::transpiler::{Rule, State, Transpiler, WystParser};
 use dirs::home_dir;
 use pest::Parser;
+use rand::random;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -181,6 +183,42 @@ impl ModManager {
         }
         problems
     }
+}
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct MatchError {
+    msg: String,
+}
+
+pub fn match_code(code: String, line: usize, column: usize) -> Result<String, MatchError> {
+    let re_include = Regex::new(r#"\#\s*include\s*(<|\")([a-zA-Z0-9_.-]*)$"#).unwrap();
+    let re_ident = Regex::new(r#"(\:\:|[_a-zA-Z])(\:\:|[_a-zA-Z0-9])*$"#).unwrap();
+    let mut lines: Vec<&str> = code.split("\n").collect();
+    if lines.len() >= line {
+        let result = &lines[line][..column];
+        if let Some(caps) = re_include.captures(&result) {
+            let match_id: u16 = random();
+            return Ok(format!("<match_file:{}:_{}>", &caps[0], match_id));
+        } else if let Some(caps) = re_ident.captures(&result) {
+            let match_id: u16 = random();
+            let match_line = format!("<match:{}:_{}>", &caps[0], match_id);
+            lines[line] = match_line.as_str();
+            let mut trsp = Transpiler::default();
+            match trsp.transpile_code(lines.join("\n"), 0) {
+                Ok(rs_code) => {
+                    return Ok(rs_code);
+                }
+                Err(_) => {
+                    return Err(MatchError {
+                        msg: "Syntax error".to_string(),
+                    });
+                }
+            }
+        }
+    }
+    Err(MatchError {
+        msg: "last resort empty".to_string(),
+    })
 }
 
 pub const LOGO: &str = r#"

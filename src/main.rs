@@ -8,6 +8,7 @@ mod utils;
 
 use clap::{App, Arg};
 use compiler::{compile_rust, transpile_file};
+use utils::match_code;
 
 fn main() {
     let matches = App::new("Wyst")
@@ -64,7 +65,10 @@ fn main() {
             }
         }
     } else if matches.is_present("stdio") {
-        println!("stdio mode!");
+        println!(
+            "{:?}",
+            match_code("void testme(int x) {}\ntest".to_string(), 1, 3).unwrap()
+        );
     } else if matches.is_present("hex") {
         let ident = matches.value_of("hex").unwrap().to_string();
         println!("_0x{}", hex::encode(ident));

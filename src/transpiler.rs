@@ -156,7 +156,7 @@ impl Transpiler {
         match pair.as_rule() {
             Rule::func_def => {
                 res += format!(
-                    "pub fn {}({}) -> {} \n{}\n",
+                    "pub fn {}({}) -> {} {}\n",
                     self.transpile(tokens[1].clone()),
                     self.transpile_pairs(tokens[2].clone().into_inner())
                         .as_str()
@@ -168,7 +168,7 @@ impl Transpiler {
             }
             Rule::ptr_fn_def => {
                 res += format!(
-                    "pub fn {}({}) -> &mut {} \n{}\n",
+                    "pub fn {}({}) -> &mut {} {}\n",
                     self.transpile(tokens[1].clone()),
                     self.transpile_pairs(tokens[2].clone().into_inner())
                         .as_str()
@@ -381,8 +381,29 @@ impl Transpiler {
                 res += self.transpile_pairs(pair.into_inner()).as_str();
             }
 
+            Rule::match_name => {
+                let to_match = tokens[0].clone().as_str();
+                let match_id = tokens[1].clone().as_str();
+                res += "\n";
+                res += self.encode_ident(to_match).as_str();
+                res += "<match:";
+                res += match_id;
+                res += ">";
+            }
+
+            Rule::operation => {
+                for i in 0..tokens.len() {
+                    let token = tokens[i].clone();
+                    if i % 2 == 0 {
+                        res += self.transpile(token).as_str();
+                    } else {
+                        res += token.as_str();
+                    }
+                }
+            }
+
             _ => {
-                println!("\x1b[33mUnh: {}\x1b[0m", pair);
+                println!("\x1b[33mNot Handled: {}\x1b[0m", pair);
                 res += " ";
                 res += pair.as_str();
                 res += " ";
