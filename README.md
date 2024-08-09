@@ -5,7 +5,7 @@
 <h1 align="center">Wyst
 </h1>
 
-<h3 align="center">Wyst is a programing language that has similar syntax to C and transpiles to Rust</h3>
+<h3 align="center">Wyst is a programing language that is inspired by C and transpiles to Go</h3>
 
 ```c
 #include <stdio.h>
@@ -15,6 +15,3 @@ int main() {
   return 0;
 }
 ```
-
-# Alpha
-We are on pure alpha. if you would like to contribute please open a new issue.
