@@ -1,10 +1,8 @@
-package main
+package tokenizer
 
 import (
 	"fmt"
 	"strings"
-
-	"github.com/wyst-lang/wyst/token"
 )
 
 type State struct {
@@ -13,7 +11,7 @@ type State struct {
 }
 
 type Token struct {
-	Rule     token.Rule
+	Rule     Rule
 	Value    string
 	Position State
 }
@@ -22,17 +20,17 @@ func (t Token) String() string {
 	return fmt.Sprintf("Token(\n  rule=%s,\n  value=%s\n)", t.Rule, t.Value)
 }
 
-func Tokenize(code string, rules []token.Rule) ([]Token, error) {
+func Tokenize(code string) ([]Token, State, error) {
 	var tokens = []Token{}
 	var state = State{1, 0}
 	for code != "" {
 		matched := false
-		for i := 0; i < len(rules); i++ {
-			if rules[i].Pattern.MatchString(code) {
-				match := rules[i].Pattern.FindString(code)
+		for i := 0; i < len(RULES); i++ {
+			if RULES[i].Pattern.MatchString(code) {
+				match := RULES[i].Pattern.FindString(code)
 				matched = true
 				code = code[len(match):]
-				tokens = append(tokens, Token{Rule: rules[i], Value: match, Position: state})
+				tokens = append(tokens, Token{Rule: RULES[i], Value: match, Position: state})
 				state.Column += len(match)
 				break
 			} else if strings.HasPrefix(code, "\n") {
@@ -47,8 +45,8 @@ func Tokenize(code string, rules []token.Rule) ([]Token, error) {
 			}
 		}
 		if !matched {
-			return tokens, fmt.Errorf("%d:%d", state.Line, state.Column)
+			return tokens, state, fmt.Errorf("invalid character or token")
 		}
 	}
-	return tokens, nil
+	return tokens, state, nil
 }

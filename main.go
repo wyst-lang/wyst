@@ -3,16 +3,17 @@ package main
 import (
 	"fmt"
 
-	"github.com/wyst-lang/wyst/token"
+	"github.com/wyst-lang/wyst/parser"
 )
 
 func main() {
-	tokens, err := Tokenize("test 123", token.RULES_TOP)
+	code := "hello"
+	ast, state, err := parser.Parse(code, parser.TOP)
 	if err != nil {
-		fmt.Printf("Syntax error at %s \n", err)
+		fmt.Printf("SyntaxErr at %d:%d: %s\n", state.Line, state.Column, err)
 		return
 	}
-	for i := 0; i < len(tokens); i++ {
-		fmt.Printf("%s\n", tokens[i])
+	for i := 0; i < len(ast); i++ {
+		fmt.Printf("%s\n", ast[i])
 	}
 }
