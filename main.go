@@ -7,8 +7,8 @@ import (
 )
 
 func main() {
-	code := "hello"
-	ast, state, err := parser.Parse(code, parser.TOP)
+	code := "int x"
+	ast, state, err := parser.Parse(code, parser.RULE_SET)
 	if err != nil {
 		fmt.Printf("SyntaxErr at %d:%d: %s\n", state.Line, state.Column, err)
 		return
