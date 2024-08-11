@@ -23,6 +23,7 @@ func (t Token) String() string {
 func Tokenize(code string) ([]Token, State, error) {
 	var tokens = []Token{}
 	var state = State{1, 0}
+	var err error = nil
 	for code != "" {
 		matched := false
 		for i := 0; i < len(RULES); i++ {
@@ -45,8 +46,9 @@ func Tokenize(code string) ([]Token, State, error) {
 			}
 		}
 		if !matched {
-			return tokens, state, fmt.Errorf("invalid character or token")
+			code = code[1:]
+			err = fmt.Errorf("invalid character or token")
 		}
 	}
-	return tokens, state, nil
+	return tokens, state, err
 }
