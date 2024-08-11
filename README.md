@@ -15,3 +15,7 @@ int main() {
   return 0;
 }
 ```
+
+# For developers
+
+If the grammar has been updated run: `antlr -Dlanguage=Go -o parser Wyst.g4`
