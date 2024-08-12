@@ -1,9 +1,8 @@
 package main
 
-import (
-)
+import "fmt"
 
 func main() {
-	tree, parser := Parse("")
-	iterateTree(tree, parser, 0)
+	ast := Parse("abc123::hello")
+	fmt.Printf("%v", ast)
 }

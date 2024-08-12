@@ -3,21 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/antlr4-go/antlr/v4"
+	"github.com/antlr4-go/antlr"
 	"github.com/wyst-lang/wyst/parser"
 )
-
-func Parse(code string) (antlr.ParseTree, *parser.WystParser) {
-	chars := antlr.NewInputStream(code)
-	lexer := parser.NewWystLexer(chars)
-	stream := antlr.NewCommonTokenStream(lexer, 0)
-
-	p := parser.NewWystParser(stream)
-	// p.AddErrorListener(antlr.NewDiagnosticErrorListener(true).WithContext(p))
-
-	tree := p.Expr()
-	return tree, p
-}
 
 func iterateTree(node antlr.Tree, wparser *parser.WystParser, depth int) {
 	if ruleContext, ok := node.(antlr.RuleContext); ok {
