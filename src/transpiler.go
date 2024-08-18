@@ -89,6 +89,5 @@ func TranspileNodes(nodes []ASTNode) string {
 func Transpile(code string) string {
 	ast := Parse(code)
 	res := TranspileNodes(ast.Inner)
-	// fmt.Printf("%v", ast)
 	return res
 }
