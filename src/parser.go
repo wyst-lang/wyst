@@ -36,7 +36,10 @@ func ConvertAST(node antlr.Tree, wparser *parser.WystParser, lexer *parser.WystL
 			ast.Text = parseTree.GetText()
 		}
 		for i := 0; i < node.GetChildCount(); i++ {
-			ast.Inner = append(ast.Inner, ConvertAST(node.GetChild(i), wparser, lexer))
+			l := ConvertAST(node.GetChild(i), wparser, lexer)
+			if l.Rule != ("'"+l.Text+"'") || l.Text == ";" {
+				ast.Inner = append(ast.Inner, l)
+			}
 		}
 	}
 	return ast
@@ -48,6 +51,6 @@ func Parse(code string) ASTNode {
 	stream := antlr.NewCommonTokenStream(lexer, 0)
 	p := parser.NewWystParser(stream)
 	// p.AddErrorListener(antlr.NewDiagnosticErrorListener(true).WithContext(p))
-	tree := p.Expr()
+	tree := p.Top()
 	return ConvertAST(tree, p, lexer)
 }
