@@ -3,18 +3,23 @@ grammar Wyst;
 WS: [ \t\r\n]+ -> skip;
 NUMBER: [1-9][0-9]* | '0';
 HEX: '0x' [a-fA-F0-9]*;
-IDENTIFIER: [a-zA-Z_] ([a-zA-Z0-9] | '::')*;
+IDENTIFIER: [a-zA-Z_] ([a-zA-Z0-9_] | '::')*;
 MATH: '+' | '-' | '*' | '/';
 fragment ESC: '\\' ['"\\] ;
 STRING: '"' (ESC | ~["\\])* '"';
 round_def: '(' (var_def (',' var_def)* ','?)? ')';
+round_call: '(' (expr (',' expr)* ','?)? ')';
+fn_call: IDENTIFIER round_call;
 func_def: IDENTIFIER IDENTIFIER round_def code_block;
 var_def: IDENTIFIER IDENTIFIER;
 var_def_set: var_def '=' expr;
+call_tree: (fn_call|IDENTIFIER) ('.' (fn_call|IDENTIFIER))*;
 asm: '%' IDENTIFIER expr (',' expr)* ';';
 
 expr:
-    (   NUMBER |
+    (
+        call_tree |
+        NUMBER |
         HEX |
         IDENTIFIER |
         STRING

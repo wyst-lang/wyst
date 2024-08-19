@@ -29,6 +29,7 @@ func TranspileToken(node ASTNode) string {
 				res += fmt.Sprintf("%x", c)
 			}
 		}
+		res = strings.ReplaceAll(res, "::", "::_0x")
 	case "HEX":
 		res += node.Text
 	case "MATH":
@@ -37,6 +38,8 @@ func TranspileToken(node ASTNode) string {
 		res += node.Text
 	case "';'":
 		res += "\n  "
+	case "','":
+		res += ", "
 	default:
 		fmt.Printf("\x1b[33mDEV NOTICE:\x1b[0m Missing token case for '%s'\n", node.Rule)
 
@@ -57,19 +60,29 @@ func TranspileNode(node ASTNode) string {
 	case "expr":
 		res += TranspileNodes(node.Inner)
 	case "code_block":
-		res += "{\n  "
-		res += strings.TrimSuffix(TranspileNodes(node.Inner), " ")
-		res += "}\n"
+		res += fmt.Sprintf("{\n  %s}", strings.TrimSuffix(TranspileNodes(node.Inner), " "))
 	case "var_def":
 		res += fmt.Sprintf("var %s %s", TranspileNode(node.Inner[1]), TranspileNode(node.Inner[0]))
 	case "round_def":
-		res += "("
-		res += strings.TrimSuffix(strings.ReplaceAll(TranspileNodes(node.Inner), "var ", ""), " ")
-		res += ")"
+		fmt.Sprintf("(%s)", strings.TrimSuffix(strings.ReplaceAll(TranspileNodes(node.Inner), "var ", ""), " "))
 	case "asm":
 		if node.Inner[0].Text == "map" && len(node.Inner) == 4 {
 			wyst_map = append(wyst_map, wmap{node.Inner[1].Text, node.Inner[2].Text})
 		}
+	case "call_tree":
+		for i, c := range node.Inner {
+			res += TranspileNode(c)
+			if i+1 < len(node.Inner) {
+				res += "."
+			}
+		}
+
+	case "fn_call":
+		res += TranspileNode(node.Inner[0])
+		res += TranspileNode(node.Inner[1])
+
+	case "round_call":
+		res += fmt.Sprintf("(%s)", TranspileNodes(node.Inner))
 
 	default:
 		fmt.Printf("\x1b[33mDEV NOTICE:\x1b[0m Missing case for '%s'\n", node.Rule)

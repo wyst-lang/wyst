@@ -27,6 +27,18 @@ func (s *BaseWystListener) EnterRound_def(ctx *Round_defContext) {}
 // ExitRound_def is called when production round_def is exited.
 func (s *BaseWystListener) ExitRound_def(ctx *Round_defContext) {}
 
+// EnterRound_call is called when production round_call is entered.
+func (s *BaseWystListener) EnterRound_call(ctx *Round_callContext) {}
+
+// ExitRound_call is called when production round_call is exited.
+func (s *BaseWystListener) ExitRound_call(ctx *Round_callContext) {}
+
+// EnterFn_call is called when production fn_call is entered.
+func (s *BaseWystListener) EnterFn_call(ctx *Fn_callContext) {}
+
+// ExitFn_call is called when production fn_call is exited.
+func (s *BaseWystListener) ExitFn_call(ctx *Fn_callContext) {}
+
 // EnterFunc_def is called when production func_def is entered.
 func (s *BaseWystListener) EnterFunc_def(ctx *Func_defContext) {}
 
@@ -44,6 +56,12 @@ func (s *BaseWystListener) EnterVar_def_set(ctx *Var_def_setContext) {}
 
 // ExitVar_def_set is called when production var_def_set is exited.
 func (s *BaseWystListener) ExitVar_def_set(ctx *Var_def_setContext) {}
+
+// EnterCall_tree is called when production call_tree is entered.
+func (s *BaseWystListener) EnterCall_tree(ctx *Call_treeContext) {}
+
+// ExitCall_tree is called when production call_tree is exited.
+func (s *BaseWystListener) ExitCall_tree(ctx *Call_treeContext) {}
 
 // EnterAsm is called when production asm is entered.
 func (s *BaseWystListener) EnterAsm(ctx *AsmContext) {}

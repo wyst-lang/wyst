@@ -37,7 +37,7 @@ func ConvertAST(node antlr.Tree, wparser *parser.WystParser, lexer *parser.WystL
 		}
 		for i := 0; i < node.GetChildCount(); i++ {
 			l := ConvertAST(node.GetChild(i), wparser, lexer)
-			if l.Rule != ("'"+l.Text+"'") || l.Text == ";" {
+			if l.Rule != ("'"+l.Text+"'") || l.Text == ";" || l.Text == "," {
 				ast.Inner = append(ast.Inner, l)
 			}
 		}
