@@ -1,1 +1,2 @@
-%map test, bruh
+%map test, hi;
+int main(test x) {}
