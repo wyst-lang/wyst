@@ -23,7 +23,3 @@ go.work
 
 #vscode
 .vscode
-
-# Idk why this is ignored tbh
-parser/
-
