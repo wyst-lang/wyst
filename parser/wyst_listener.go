@@ -11,6 +11,9 @@ type WystListener interface {
 	// EnterRound_def is called when entering the round_def production.
 	EnterRound_def(c *Round_defContext)
 
+	// EnterEnum_curly is called when entering the enum_curly production.
+	EnterEnum_curly(c *Enum_curlyContext)
+
 	// EnterRound_call is called when entering the round_call production.
 	EnterRound_call(c *Round_callContext)
 
@@ -29,8 +32,17 @@ type WystListener interface {
 	// EnterCall_tree is called when entering the call_tree production.
 	EnterCall_tree(c *Call_treeContext)
 
-	// EnterAsm is called when entering the asm production.
-	EnterAsm(c *AsmContext)
+	// EnterStruct_def is called when entering the struct_def production.
+	EnterStruct_def(c *Struct_defContext)
+
+	// EnterPower_keyword is called when entering the power_keyword production.
+	EnterPower_keyword(c *Power_keywordContext)
+
+	// EnterPower_keyword_call is called when entering the power_keyword_call production.
+	EnterPower_keyword_call(c *Power_keyword_callContext)
+
+	// EnterNamespace is called when entering the namespace production.
+	EnterNamespace(c *NamespaceContext)
 
 	// EnterExpr is called when entering the expr production.
 	EnterExpr(c *ExprContext)
@@ -43,6 +55,9 @@ type WystListener interface {
 
 	// ExitRound_def is called when exiting the round_def production.
 	ExitRound_def(c *Round_defContext)
+
+	// ExitEnum_curly is called when exiting the enum_curly production.
+	ExitEnum_curly(c *Enum_curlyContext)
 
 	// ExitRound_call is called when exiting the round_call production.
 	ExitRound_call(c *Round_callContext)
@@ -62,8 +77,17 @@ type WystListener interface {
 	// ExitCall_tree is called when exiting the call_tree production.
 	ExitCall_tree(c *Call_treeContext)
 
-	// ExitAsm is called when exiting the asm production.
-	ExitAsm(c *AsmContext)
+	// ExitStruct_def is called when exiting the struct_def production.
+	ExitStruct_def(c *Struct_defContext)
+
+	// ExitPower_keyword is called when exiting the power_keyword production.
+	ExitPower_keyword(c *Power_keywordContext)
+
+	// ExitPower_keyword_call is called when exiting the power_keyword_call production.
+	ExitPower_keyword_call(c *Power_keyword_callContext)
+
+	// ExitNamespace is called when exiting the namespace production.
+	ExitNamespace(c *NamespaceContext)
 
 	// ExitExpr is called when exiting the expr production.
 	ExitExpr(c *ExprContext)

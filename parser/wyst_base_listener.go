@@ -27,6 +27,12 @@ func (s *BaseWystListener) EnterRound_def(ctx *Round_defContext) {}
 // ExitRound_def is called when production round_def is exited.
 func (s *BaseWystListener) ExitRound_def(ctx *Round_defContext) {}
 
+// EnterEnum_curly is called when production enum_curly is entered.
+func (s *BaseWystListener) EnterEnum_curly(ctx *Enum_curlyContext) {}
+
+// ExitEnum_curly is called when production enum_curly is exited.
+func (s *BaseWystListener) ExitEnum_curly(ctx *Enum_curlyContext) {}
+
 // EnterRound_call is called when production round_call is entered.
 func (s *BaseWystListener) EnterRound_call(ctx *Round_callContext) {}
 
@@ -63,11 +69,29 @@ func (s *BaseWystListener) EnterCall_tree(ctx *Call_treeContext) {}
 // ExitCall_tree is called when production call_tree is exited.
 func (s *BaseWystListener) ExitCall_tree(ctx *Call_treeContext) {}
 
-// EnterAsm is called when production asm is entered.
-func (s *BaseWystListener) EnterAsm(ctx *AsmContext) {}
+// EnterStruct_def is called when production struct_def is entered.
+func (s *BaseWystListener) EnterStruct_def(ctx *Struct_defContext) {}
 
-// ExitAsm is called when production asm is exited.
-func (s *BaseWystListener) ExitAsm(ctx *AsmContext) {}
+// ExitStruct_def is called when production struct_def is exited.
+func (s *BaseWystListener) ExitStruct_def(ctx *Struct_defContext) {}
+
+// EnterPower_keyword is called when production power_keyword is entered.
+func (s *BaseWystListener) EnterPower_keyword(ctx *Power_keywordContext) {}
+
+// ExitPower_keyword is called when production power_keyword is exited.
+func (s *BaseWystListener) ExitPower_keyword(ctx *Power_keywordContext) {}
+
+// EnterPower_keyword_call is called when production power_keyword_call is entered.
+func (s *BaseWystListener) EnterPower_keyword_call(ctx *Power_keyword_callContext) {}
+
+// ExitPower_keyword_call is called when production power_keyword_call is exited.
+func (s *BaseWystListener) ExitPower_keyword_call(ctx *Power_keyword_callContext) {}
+
+// EnterNamespace is called when production namespace is entered.
+func (s *BaseWystListener) EnterNamespace(ctx *NamespaceContext) {}
+
+// ExitNamespace is called when production namespace is exited.
+func (s *BaseWystListener) ExitNamespace(ctx *NamespaceContext) {}
 
 // EnterExpr is called when production expr is entered.
 func (s *BaseWystListener) EnterExpr(ctx *ExprContext) {}
