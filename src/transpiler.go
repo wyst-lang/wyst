@@ -29,7 +29,7 @@ func TranspileToken(node ASTNode) string {
 				res += fmt.Sprintf("%x", c)
 			}
 		}
-		res = strings.ReplaceAll(res, "::", "::_0x")
+		res = strings.ReplaceAll(res, "::", "._0x")
 	case "HEX":
 		res += node.Text
 	case "MATH":
@@ -40,6 +40,8 @@ func TranspileToken(node ASTNode) string {
 		res += "\n  "
 	case "','":
 		res += ", "
+	case "IDENT":
+		res += fmt.Sprintf("_%#x", node.Text)
 	default:
 		fmt.Printf("\x1b[33mDEV NOTICE:\x1b[0m Missing token case for '%s'\n", node.Rule)
 
@@ -56,7 +58,11 @@ func TranspileNode(node ASTNode) string {
 	switch node.Rule {
 
 	case "func_def":
-		res += fmt.Sprintf("func %s%s %s %s", TranspileNode(node.Inner[1]), TranspileNode(node.Inner[2]), TranspileNode(node.Inner[0]), TranspileNode(node.Inner[3]))
+		return_type := TranspileNode(node.Inner[0])
+		if return_type == "_0x766f6964" {
+			return_type = ""
+		}
+		res += fmt.Sprintf("func %s%s %s %s", TranspileNode(node.Inner[1]), TranspileNode(node.Inner[2]), return_type, TranspileNode(node.Inner[3]))
 	case "expr":
 		res += TranspileNodes(node.Inner)
 	case "code_block":
@@ -64,11 +70,7 @@ func TranspileNode(node ASTNode) string {
 	case "var_def":
 		res += fmt.Sprintf("var %s %s", TranspileNode(node.Inner[1]), TranspileNode(node.Inner[0]))
 	case "round_def":
-		fmt.Sprintf("(%s)", strings.TrimSuffix(strings.ReplaceAll(TranspileNodes(node.Inner), "var ", ""), " "))
-	case "power_keyword_call":
-		if node.Inner[0].Text == "map" && len(node.Inner) == 4 {
-			wyst_map = append(wyst_map, wmap{node.Inner[1].Text, node.Inner[2].Text})
-		}
+		res += fmt.Sprintf("(%s)", strings.TrimSuffix(strings.ReplaceAll(TranspileNodes(node.Inner), "var ", ""), " "))
 	case "call_tree":
 		for i, c := range node.Inner {
 			res += TranspileNode(c)
@@ -112,9 +114,19 @@ func TranspileNode(node ASTNode) string {
 			}
 		}
 		res += fmt.Sprintf("var %s %s = %s{%s}", TranspileNode(node.Inner[0]), namespace_name, namespace_name, vals)
-	
+
 	case "var_def_set":
 		res += fmt.Sprintf("%s = %s", TranspileNode(node.Inner[0]), TranspileNode(node.Inner[1]))
+
+	case "import_statement":
+		res += fmt.Sprintf("import . \"%s\"\n", TranspileNode(node.Inner[0]))
+
+	case "use_statement":
+		ident := strings.Split(TranspileNode(node.Inner[0]), ".")
+		res += fmt.Sprintf("import \"%s\"\n", ident[0])
+		if len(ident) > 1 {
+			res += fmt.Sprintf("var %s = %s\n", ident[len(ident)-1], strings.Join(ident, "."))
+		}
 
 	default:
 		fmt.Printf("\x1b[33mDEV NOTICE:\x1b[0m Missing case for '%s'\n", node.Rule)

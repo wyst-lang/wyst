@@ -35,14 +35,14 @@ type WystListener interface {
 	// EnterStruct_def is called when entering the struct_def production.
 	EnterStruct_def(c *Struct_defContext)
 
-	// EnterPower_keyword is called when entering the power_keyword production.
-	EnterPower_keyword(c *Power_keywordContext)
-
-	// EnterPower_keyword_call is called when entering the power_keyword_call production.
-	EnterPower_keyword_call(c *Power_keyword_callContext)
-
 	// EnterNamespace is called when entering the namespace production.
 	EnterNamespace(c *NamespaceContext)
+
+	// EnterImport_statement is called when entering the import_statement production.
+	EnterImport_statement(c *Import_statementContext)
+
+	// EnterUse_statement is called when entering the use_statement production.
+	EnterUse_statement(c *Use_statementContext)
 
 	// EnterExpr is called when entering the expr production.
 	EnterExpr(c *ExprContext)
@@ -80,14 +80,14 @@ type WystListener interface {
 	// ExitStruct_def is called when exiting the struct_def production.
 	ExitStruct_def(c *Struct_defContext)
 
-	// ExitPower_keyword is called when exiting the power_keyword production.
-	ExitPower_keyword(c *Power_keywordContext)
-
-	// ExitPower_keyword_call is called when exiting the power_keyword_call production.
-	ExitPower_keyword_call(c *Power_keyword_callContext)
-
 	// ExitNamespace is called when exiting the namespace production.
 	ExitNamespace(c *NamespaceContext)
+
+	// ExitImport_statement is called when exiting the import_statement production.
+	ExitImport_statement(c *Import_statementContext)
+
+	// ExitUse_statement is called when exiting the use_statement production.
+	ExitUse_statement(c *Use_statementContext)
 
 	// ExitExpr is called when exiting the expr production.
 	ExitExpr(c *ExprContext)

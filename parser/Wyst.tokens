@@ -25,6 +25,6 @@ STRING=18
 '='=7
 '.'=8
 'struct'=9
-'map'=10
-'#'=11
-'namespace'=12
+'namespace'=10
+'include'=11
+'use'=12

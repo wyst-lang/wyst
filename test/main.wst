@@ -1,5 +1,5 @@
-#map _, _;
+include io;
 
-int main() {
-    int x = 20;
+void main() {
+    
 }

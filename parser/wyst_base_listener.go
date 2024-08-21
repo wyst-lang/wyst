@@ -75,23 +75,23 @@ func (s *BaseWystListener) EnterStruct_def(ctx *Struct_defContext) {}
 // ExitStruct_def is called when production struct_def is exited.
 func (s *BaseWystListener) ExitStruct_def(ctx *Struct_defContext) {}
 
-// EnterPower_keyword is called when production power_keyword is entered.
-func (s *BaseWystListener) EnterPower_keyword(ctx *Power_keywordContext) {}
-
-// ExitPower_keyword is called when production power_keyword is exited.
-func (s *BaseWystListener) ExitPower_keyword(ctx *Power_keywordContext) {}
-
-// EnterPower_keyword_call is called when production power_keyword_call is entered.
-func (s *BaseWystListener) EnterPower_keyword_call(ctx *Power_keyword_callContext) {}
-
-// ExitPower_keyword_call is called when production power_keyword_call is exited.
-func (s *BaseWystListener) ExitPower_keyword_call(ctx *Power_keyword_callContext) {}
-
 // EnterNamespace is called when production namespace is entered.
 func (s *BaseWystListener) EnterNamespace(ctx *NamespaceContext) {}
 
 // ExitNamespace is called when production namespace is exited.
 func (s *BaseWystListener) ExitNamespace(ctx *NamespaceContext) {}
+
+// EnterImport_statement is called when production import_statement is entered.
+func (s *BaseWystListener) EnterImport_statement(ctx *Import_statementContext) {}
+
+// ExitImport_statement is called when production import_statement is exited.
+func (s *BaseWystListener) ExitImport_statement(ctx *Import_statementContext) {}
+
+// EnterUse_statement is called when production use_statement is entered.
+func (s *BaseWystListener) EnterUse_statement(ctx *Use_statementContext) {}
+
+// ExitUse_statement is called when production use_statement is exited.
+func (s *BaseWystListener) ExitUse_statement(ctx *Use_statementContext) {}
 
 // EnterExpr is called when production expr is entered.
 func (s *BaseWystListener) EnterExpr(ctx *ExprContext) {}
