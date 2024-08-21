@@ -7,6 +7,9 @@ IDENTIFIER: [a-zA-Z_] [a-zA-Z0-9_]* ('::' [a-zA-Z_] [a-zA-Z0-9_]*)*;
 MATH: '+' | '-' | '*' | '/';
 fragment ESC: '\\' ['"\\] ;
 STRING: '"' (ESC | ~["\\])* '"';
+MODULE_NAME: [a-zA-Z_] [a-zA-Z0-9_]*;
+
+
 round_def: '(' (var_def (',' var_def)* ','?)? ')';
 enum_curly: '{' (var_def ';')* '}';
 round_call: '(' (expr (',' expr)* ','?)? ')';
@@ -17,7 +20,7 @@ var_def_set: var_def '=' expr;
 call_tree: (fn_call|IDENTIFIER) ('.' (fn_call|IDENTIFIER))*;
 struct_def: 'struct' IDENTIFIER enum_curly;
 namespace: 'namespace' IDENTIFIER '{' (((var_def|var_def_set) ';')|func_def)* '}';
-import_statement: 'include' IDENTIFIER ';';
+import_statement: 'include' MODULE_NAME ';';
 use_statement: 'use' IDENTIFIER ';';
 
 expr:

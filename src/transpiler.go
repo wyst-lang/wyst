@@ -7,7 +7,7 @@ import (
 
 type wmap [2]string
 
-var wyst_map []wmap
+var wyst_map []wmap = []wmap{{"int", "int"}, {"void", "void"}, {"main", "main"}}
 
 func TranspileToken(node ASTNode) string {
 	res := ""
@@ -21,7 +21,7 @@ func TranspileToken(node ASTNode) string {
 				return i[1]
 			}
 		}
-		res += "_0x"
+		res += "I0x"
 		for _, c := range node.Text {
 			if c == ':' || c == '.' {
 				res += string(c)
@@ -29,7 +29,7 @@ func TranspileToken(node ASTNode) string {
 				res += fmt.Sprintf("%x", c)
 			}
 		}
-		res = strings.ReplaceAll(res, "::", "._0x")
+		res = strings.ReplaceAll(res, "::", ".I0x")
 	case "HEX":
 		res += node.Text
 	case "MATH":
@@ -50,7 +50,7 @@ func TranspileToken(node ASTNode) string {
 	return res
 }
 
-func TranspileNode(node ASTNode) string {
+func (m *Module) TranspileNode(node ASTNode) string {
 	res := ""
 	if node.Rule == strings.ToUpper(node.Rule) {
 		return TranspileToken(node)
@@ -58,72 +58,78 @@ func TranspileNode(node ASTNode) string {
 	switch node.Rule {
 
 	case "func_def":
-		return_type := TranspileNode(node.Inner[0])
-		if return_type == "_0x766f6964" {
+		return_type := m.TranspileNode(node.Inner[0])
+		if return_type == "void" {
 			return_type = ""
 		}
-		res += fmt.Sprintf("func %s%s %s %s", TranspileNode(node.Inner[1]), TranspileNode(node.Inner[2]), return_type, TranspileNode(node.Inner[3]))
+		res += fmt.Sprintf("func %s%s %s %s", m.TranspileNode(node.Inner[1]), m.TranspileNode(node.Inner[2]), return_type, m.TranspileNode(node.Inner[3]))
 	case "expr":
-		res += TranspileNodes(node.Inner)
+		res += m.TranspileNodes(node.Inner)
 	case "code_block":
-		res += fmt.Sprintf("{\n  %s}", strings.TrimSuffix(TranspileNodes(node.Inner), " "))
+		res += fmt.Sprintf("{\n  %s}", strings.TrimSuffix(m.TranspileNodes(node.Inner), " "))
 	case "var_def":
-		res += fmt.Sprintf("var %s %s", TranspileNode(node.Inner[1]), TranspileNode(node.Inner[0]))
+		res += fmt.Sprintf("var %s %s", m.TranspileNode(node.Inner[1]), m.TranspileNode(node.Inner[0]))
 	case "round_def":
-		res += fmt.Sprintf("(%s)", strings.TrimSuffix(strings.ReplaceAll(TranspileNodes(node.Inner), "var ", ""), " "))
+		res += fmt.Sprintf("(%s)", strings.TrimSuffix(strings.ReplaceAll(m.TranspileNodes(node.Inner), "var ", ""), " "))
 	case "call_tree":
 		for i, c := range node.Inner {
-			res += TranspileNode(c)
+			res += m.TranspileNode(c)
 			if i+1 < len(node.Inner) {
 				res += "."
 			}
 		}
 
 	case "fn_call":
-		res += TranspileNode(node.Inner[0])
-		res += TranspileNode(node.Inner[1])
+		res += m.TranspileNode(node.Inner[0])
+		res += m.TranspileNode(node.Inner[1])
 
 	case "round_call":
-		res += fmt.Sprintf("(%s)", TranspileNodes(node.Inner))
+		res += fmt.Sprintf("(%s)", m.TranspileNodes(node.Inner))
 
 	case "struct_def":
-		res += fmt.Sprintf("type %s struct %s\n", TranspileNode(node.Inner[0]), TranspileNode(node.Inner[1]))
+		res += fmt.Sprintf("type %s struct %s\n", m.TranspileNode(node.Inner[0]), m.TranspileNode(node.Inner[1]))
 
 	case "enum_curly":
-		res += fmt.Sprintf("{\n  %s}", strings.TrimSuffix(TranspileNodes(node.Inner), " "))
+		res += fmt.Sprintf("{\n  %s}", strings.TrimSuffix(m.TranspileNodes(node.Inner), " "))
 
 	case "namespace":
-		namespace_name := "n" + TranspileNode(node.Inner[0])
+		namespace_name := "n" + m.TranspileNode(node.Inner[0])
 		res += fmt.Sprintf("type %s struct {\n  ", namespace_name)
 		vals := ""
 		for _, c := range node.Inner {
 			if c.Rule == "var_def" {
-				res += strings.TrimPrefix(TranspileNode(c), "var ")
+				res += strings.TrimPrefix(m.TranspileNode(c), "var ")
 				res += "\n  "
 			} else if c.Rule == "var_def_set" {
-				res += strings.TrimPrefix(TranspileNode(c.Inner[0]), "var ")
+				res += strings.TrimPrefix(m.TranspileNode(c.Inner[0]), "var ")
 				res += "\n  "
-				vals += fmt.Sprintf("%s: %s, ", TranspileNode(c.Inner[0].Inner[1]), TranspileNode(c.Inner[1]))
+				vals += fmt.Sprintf("%s: %s, ", m.TranspileNode(c.Inner[0].Inner[1]), m.TranspileNode(c.Inner[1]))
 			}
 		}
 		res += "}\n"
 		for _, c := range node.Inner {
 			if c.Rule == "func_def" {
-				res += fmt.Sprintf("func (%s) %s%s %s %s", namespace_name, TranspileNode(c.Inner[1]), TranspileNode(c.Inner[2]), TranspileNode(c.Inner[0]), TranspileNode(c.Inner[3]))
+				return_type := m.TranspileNode(c.Inner[0])
+				if return_type == "void" {
+					return_type = ""
+				}
+				res += fmt.Sprintf("func (%s) %s%s %s %s", namespace_name, m.TranspileNode(c.Inner[1]), m.TranspileNode(c.Inner[2]), return_type, m.TranspileNode(c.Inner[3]))
 				res += "\n  "
 			}
 		}
-		res += fmt.Sprintf("var %s %s = %s{%s}", TranspileNode(node.Inner[0]), namespace_name, namespace_name, vals)
+		res += fmt.Sprintf("var %s %s = %s{%s}", m.TranspileNode(node.Inner[0]), namespace_name, namespace_name, vals)
 
 	case "var_def_set":
-		res += fmt.Sprintf("%s = %s", TranspileNode(node.Inner[0]), TranspileNode(node.Inner[1]))
+		res += fmt.Sprintf("%s = %s", m.TranspileNode(node.Inner[0]), m.TranspileNode(node.Inner[1]))
 
 	case "import_statement":
-		res += fmt.Sprintf("import . \"%s\"\n", TranspileNode(node.Inner[0]))
+		res += fmt.Sprintf("import . \"%s\"\n", m.ImportModule(node.Inner[0].Text))
 
 	case "use_statement":
-		ident := strings.Split(TranspileNode(node.Inner[0]), ".")
-		res += fmt.Sprintf("import \"%s\"\n", ident[0])
+		ident := strings.Split(node.Inner[0].Text, ".")
+		modname := m.ImportModule(ident[0])
+		m := strings.Split(modname, "/")
+		res += fmt.Sprintf("import %s \"%s\"\n", m[len(m)-1], modname)
 		if len(ident) > 1 {
 			res += fmt.Sprintf("var %s = %s\n", ident[len(ident)-1], strings.Join(ident, "."))
 		}
@@ -135,16 +141,16 @@ func TranspileNode(node ASTNode) string {
 	return res
 }
 
-func TranspileNodes(nodes []ASTNode) string {
+func (m *Module) TranspileNodes(nodes []ASTNode) string {
 	res := ""
 	for i := 0; i < len(nodes); i++ {
-		res += TranspileNode(nodes[i])
+		res += m.TranspileNode(nodes[i])
 	}
 	return res
 }
 
-func Transpile(code string) string {
+func (m *Module) Transpile(code string) string {
 	ast := Parse(code)
-	res := TranspileNodes(ast.Inner)
+	res := m.TranspileNodes(ast.Inner)
 	return res
 }
