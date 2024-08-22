@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 )
+
+const OUT_FOLDER = "build/"
 
 func FileExists(filename string) bool {
 	_, err := os.Stat(filename)
@@ -43,7 +46,7 @@ func NewRoot(file_path string) Module {
 	root := Module{}
 
 	root.Path = file_path
-	root.Out = "out/main.go"
+	root.Out = OUT_FOLDER+"main.go"
 	root.Name = "root"
 	root.Code = root.Transpile(readFile(file_path))
 
@@ -53,16 +56,15 @@ func NewRoot(file_path string) Module {
 func (root *Module) ImportModule(modname string) string {
 	module := Module{Name: modname}
 	module.Path = path.Join(path.Dir(root.Path), module.Name+".wyst")
-	if FileExists(module.Path) {
-		module.Code = "package " + fmt.Sprintf("_%#x", modname) + "\n" + module.Transpile(readFile(module.Path))
-	} else {
+	if !FileExists(module.Path) {
 		module.Path = path.Join(path.Dir(root.Path), module.Name, "mod.wyst")
-		if FileExists(module.Path) {
-			module.Code = "package " + fmt.Sprintf("_%#x", modname) + "\n" + module.Transpile(readFile(module.Path))
-		}
 	}
-	module.Out = fmt.Sprintf("%s/I%#x/%s.go", path.Dir(root.Out), module.Name, module.Name)
-	root.Inner = append(root.Inner, module)
+
+	if FileExists(module.Path) {
+		module.Out = fmt.Sprintf("%s/I%#x/%s.go", path.Dir(root.Out), module.Name, module.Name)
+		module.Code = "package " + fmt.Sprintf("_%#x", modname) + "\n" + module.Transpile(readFile(module.Path))
+		root.Inner = append(root.Inner, module)
+	}
 	return fmt.Sprintf("%s/I%#x", path.Dir(root.Out), module.Name)
 }
 
@@ -74,7 +76,7 @@ func WriteModules(root Module) {
 }
 
 func WriteRoot(root Module) {
-	writeFile("out/main.go", "package main\n"+root.Code)
-	writeFile("out/go.mod", "module out\n")
+	writeFile(OUT_FOLDER+"main.go", "package main\n"+root.Code)
+	writeFile(OUT_FOLDER+"go.mod", "module "+strings.ReplaceAll(OUT_FOLDER, "/", "")+"\n")
 	WriteModules(root)
 }

@@ -4,7 +4,8 @@ WS: [ \t\r\n]+ -> skip;
 NUMBER: [1-9][0-9]* | '0';
 HEX: '0x' [a-fA-F0-9]*;
 IDENTIFIER: [a-zA-Z_] [a-zA-Z0-9_]* ('::' [a-zA-Z_] [a-zA-Z0-9_]*)*;
-MATH: '+' | '-' | '*' | '/';
+GOIDENTIFIER: '^' [a-zA-Z_] [a-zA-Z0-9_]* ('.' [a-zA-Z_] [a-zA-Z0-9_]*)*;
+MATH: '+' | '-' | '*' | '/' | '==' | '!=' | '>=' | '<=';
 fragment ESC: '\\' ['"\\] ;
 STRING: '"' (ESC | ~["\\])* '"';
 MODULE_NAME: [a-zA-Z_] [a-zA-Z0-9_]*;
@@ -22,6 +23,16 @@ struct_def: 'struct' IDENTIFIER enum_curly;
 namespace: 'namespace' IDENTIFIER '{' (((var_def|var_def_set) ';')|func_def)* '}';
 import_statement: 'include' MODULE_NAME ';';
 use_statement: 'use' IDENTIFIER ';';
+go_import: '%import' STRING ';';
+map: '%map' IDENTIFIER ',' IDENTIFIER ';';
+go_call: GOIDENTIFIER round_call;
+
+// if else statements
+if_expr: '(' expr (('&&'|'||') expr)* ')';
+if_statement: 'if' if_expr code_block*;
+elseif_statement: 'else' if_statement;
+else_statement: 'else' code_block*;
+if_tree: if_statement elseif_statement* else_statement?;
 
 expr:
     (
@@ -29,19 +40,25 @@ expr:
         NUMBER |
         HEX |
         IDENTIFIER |
-        STRING
+        STRING |
+        go_call |
+        GOIDENTIFIER
     ) (MATH expr)*;
 
-code_block: '{' ((
+code_block: '{' (((
     expr |
     var_def |
     var_def_set
-) ';')* '}';
+) ';') | (
+    if_tree
+))* '}';
 
 top: (
     func_def |
     struct_def |
     namespace |
     import_statement |
-    use_statement
+    use_statement |
+    go_import |
+    map
 )*;

@@ -7,7 +7,7 @@ import (
 
 type wmap [2]string
 
-var wyst_map []wmap = []wmap{{"int", "int"}, {"void", "void"}, {"main", "main"}}
+var wyst_map []wmap = []wmap{{"int", "int"}, {"void", "void"}, {"main", "main"}, {"string", "string"}, {"true", "true"}, {"false", "false"}}
 
 func TranspileToken(node ASTNode) string {
 	res := ""
@@ -42,6 +42,8 @@ func TranspileToken(node ASTNode) string {
 		res += ", "
 	case "IDENT":
 		res += fmt.Sprintf("_%#x", node.Text)
+	case "GOIDENTIFIER":
+		res += strings.TrimPrefix(node.Text, "^")
 	default:
 		fmt.Printf("\x1b[33mDEV NOTICE:\x1b[0m Missing token case for '%s'\n", node.Rule)
 
@@ -83,9 +85,6 @@ func (m *Module) TranspileNode(node ASTNode) string {
 		res += m.TranspileNode(node.Inner[0])
 		res += m.TranspileNode(node.Inner[1])
 
-	case "round_call":
-		res += fmt.Sprintf("(%s)", m.TranspileNodes(node.Inner))
-
 	case "struct_def":
 		res += fmt.Sprintf("type %s struct %s\n", m.TranspileNode(node.Inner[0]), m.TranspileNode(node.Inner[1]))
 
@@ -126,13 +125,44 @@ func (m *Module) TranspileNode(node ASTNode) string {
 		res += fmt.Sprintf("import . \"%s\"\n", m.ImportModule(node.Inner[0].Text))
 
 	case "use_statement":
-		ident := strings.Split(node.Inner[0].Text, ".")
+		ident := strings.Split(node.Inner[0].Text, "::")
+		ident2 := strings.Split(m.TranspileNode(node.Inner[0]), ".")
 		modname := m.ImportModule(ident[0])
-		m := strings.Split(modname, "/")
-		res += fmt.Sprintf("import %s \"%s\"\n", m[len(m)-1], modname)
+		md := strings.Split(modname, "/")
+		res += fmt.Sprintf("import %s \"%s\"\n", md[len(md)-1], modname)
 		if len(ident) > 1 {
-			res += fmt.Sprintf("var %s = %s\n", ident[len(ident)-1], strings.Join(ident, "."))
+			res += fmt.Sprintf("var %s = %s\n", ident2[len(ident2)-1], m.TranspileNode(node.Inner[0]))
 		}
+
+	case "go_import":
+		res += "import " + m.TranspileNode(node.Inner[0]) + "\n"
+
+	case "map":
+		wyst_map = append(wyst_map, wmap{node.Inner[0].Text, node.Inner[2].Text})
+
+	case "go_call":
+		res += m.TranspileNode(node.Inner[0])
+		res += m.TranspileNode(node.Inner[1])
+
+	case "round_call":
+		res += "(" + m.TranspileNodes(node.Inner) + ")"
+
+	case "if_tree":
+		res += m.TranspileNodes(node.Inner)
+
+	case "if_statement":
+		res += "if " + m.TranspileNodes(node.Inner)
+
+	case "if_expr":
+		res += m.TranspileNodes(node.Inner)
+
+	case "else_statement":
+		res += "else "
+		res += m.TranspileNodes(node.Inner)
+	
+	case "elseif_statement":
+		res += "else "
+		res += m.TranspileNodes(node.Inner)
 
 	default:
 		fmt.Printf("\x1b[33mDEV NOTICE:\x1b[0m Missing case for '%s'\n", node.Rule)

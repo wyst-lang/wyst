@@ -93,6 +93,54 @@ func (s *BaseWystListener) EnterUse_statement(ctx *Use_statementContext) {}
 // ExitUse_statement is called when production use_statement is exited.
 func (s *BaseWystListener) ExitUse_statement(ctx *Use_statementContext) {}
 
+// EnterGo_import is called when production go_import is entered.
+func (s *BaseWystListener) EnterGo_import(ctx *Go_importContext) {}
+
+// ExitGo_import is called when production go_import is exited.
+func (s *BaseWystListener) ExitGo_import(ctx *Go_importContext) {}
+
+// EnterMap is called when production map is entered.
+func (s *BaseWystListener) EnterMap(ctx *MapContext) {}
+
+// ExitMap is called when production map is exited.
+func (s *BaseWystListener) ExitMap(ctx *MapContext) {}
+
+// EnterGo_call is called when production go_call is entered.
+func (s *BaseWystListener) EnterGo_call(ctx *Go_callContext) {}
+
+// ExitGo_call is called when production go_call is exited.
+func (s *BaseWystListener) ExitGo_call(ctx *Go_callContext) {}
+
+// EnterIf_expr is called when production if_expr is entered.
+func (s *BaseWystListener) EnterIf_expr(ctx *If_exprContext) {}
+
+// ExitIf_expr is called when production if_expr is exited.
+func (s *BaseWystListener) ExitIf_expr(ctx *If_exprContext) {}
+
+// EnterIf_statement is called when production if_statement is entered.
+func (s *BaseWystListener) EnterIf_statement(ctx *If_statementContext) {}
+
+// ExitIf_statement is called when production if_statement is exited.
+func (s *BaseWystListener) ExitIf_statement(ctx *If_statementContext) {}
+
+// EnterElseif_statement is called when production elseif_statement is entered.
+func (s *BaseWystListener) EnterElseif_statement(ctx *Elseif_statementContext) {}
+
+// ExitElseif_statement is called when production elseif_statement is exited.
+func (s *BaseWystListener) ExitElseif_statement(ctx *Elseif_statementContext) {}
+
+// EnterElse_statement is called when production else_statement is entered.
+func (s *BaseWystListener) EnterElse_statement(ctx *Else_statementContext) {}
+
+// ExitElse_statement is called when production else_statement is exited.
+func (s *BaseWystListener) ExitElse_statement(ctx *Else_statementContext) {}
+
+// EnterIf_tree is called when production if_tree is entered.
+func (s *BaseWystListener) EnterIf_tree(ctx *If_treeContext) {}
+
+// ExitIf_tree is called when production if_tree is exited.
+func (s *BaseWystListener) ExitIf_tree(ctx *If_treeContext) {}
+
 // EnterExpr is called when production expr is entered.
 func (s *BaseWystListener) EnterExpr(ctx *ExprContext) {}
 

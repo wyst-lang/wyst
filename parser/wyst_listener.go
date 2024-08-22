@@ -44,6 +44,30 @@ type WystListener interface {
 	// EnterUse_statement is called when entering the use_statement production.
 	EnterUse_statement(c *Use_statementContext)
 
+	// EnterGo_import is called when entering the go_import production.
+	EnterGo_import(c *Go_importContext)
+
+	// EnterMap is called when entering the map production.
+	EnterMap(c *MapContext)
+
+	// EnterGo_call is called when entering the go_call production.
+	EnterGo_call(c *Go_callContext)
+
+	// EnterIf_expr is called when entering the if_expr production.
+	EnterIf_expr(c *If_exprContext)
+
+	// EnterIf_statement is called when entering the if_statement production.
+	EnterIf_statement(c *If_statementContext)
+
+	// EnterElseif_statement is called when entering the elseif_statement production.
+	EnterElseif_statement(c *Elseif_statementContext)
+
+	// EnterElse_statement is called when entering the else_statement production.
+	EnterElse_statement(c *Else_statementContext)
+
+	// EnterIf_tree is called when entering the if_tree production.
+	EnterIf_tree(c *If_treeContext)
+
 	// EnterExpr is called when entering the expr production.
 	EnterExpr(c *ExprContext)
 
@@ -88,6 +112,30 @@ type WystListener interface {
 
 	// ExitUse_statement is called when exiting the use_statement production.
 	ExitUse_statement(c *Use_statementContext)
+
+	// ExitGo_import is called when exiting the go_import production.
+	ExitGo_import(c *Go_importContext)
+
+	// ExitMap is called when exiting the map production.
+	ExitMap(c *MapContext)
+
+	// ExitGo_call is called when exiting the go_call production.
+	ExitGo_call(c *Go_callContext)
+
+	// ExitIf_expr is called when exiting the if_expr production.
+	ExitIf_expr(c *If_exprContext)
+
+	// ExitIf_statement is called when exiting the if_statement production.
+	ExitIf_statement(c *If_statementContext)
+
+	// ExitElseif_statement is called when exiting the elseif_statement production.
+	ExitElseif_statement(c *Elseif_statementContext)
+
+	// ExitElse_statement is called when exiting the else_statement production.
+	ExitElse_statement(c *Else_statementContext)
+
+	// ExitIf_tree is called when exiting the if_tree production.
+	ExitIf_tree(c *If_treeContext)
 
 	// ExitExpr is called when exiting the expr production.
 	ExitExpr(c *ExprContext)
