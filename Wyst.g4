@@ -1,5 +1,7 @@
 grammar Wyst;
 
+COMMENT: '//' ~[\r\n]* -> skip;
+MULTILINE_COMMENT: '/*' .*? '*/' -> skip;
 WS: [ \t\r\n]+ -> skip;
 NUMBER: [1-9][0-9]* | '0';
 HEX: '0x' [a-fA-F0-9]*;
