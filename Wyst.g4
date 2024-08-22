@@ -6,10 +6,9 @@ HEX: '0x' [a-fA-F0-9]*;
 IDENTIFIER: [a-zA-Z_] [a-zA-Z0-9_]* ('::' [a-zA-Z_] [a-zA-Z0-9_]*)*;
 GOIDENTIFIER: '^' [a-zA-Z_] [a-zA-Z0-9_]* ('.' [a-zA-Z_] [a-zA-Z0-9_]*)*;
 MATH: '+' | '-' | '*' | '/' | '==' | '!=' | '>=' | '<=';
-fragment ESC: '\\' ['"\\] ;
-STRING: '"' (ESC | ~["\\])* '"';
+fragment ESC: '\\' . ;
+STRING: ('"' (ESC | ~["\\])* '"') | ('\'' (ESC | ~["\\])* '\'') ;
 MODULE_NAME: [a-zA-Z_] [a-zA-Z0-9_]*;
-
 
 round_def: '(' (var_def (',' var_def)* ','?)? ')';
 enum_curly: '{' (var_def ';')* '}';

@@ -35,7 +35,11 @@ func TranspileToken(node ASTNode) string {
 	case "MATH":
 		res += node.Text
 	case "STRING":
-		res += node.Text
+		if strings.HasPrefix(node.Text, "'") {
+			res += "\"" + strings.ReplaceAll(strings.TrimSuffix(strings.TrimPrefix(node.Text, "'"), "'"), "\\'", "'") + "\""
+		} else {
+			res += node.Text
+		}
 	case "';'":
 		res += "\n  "
 	case "','":
@@ -68,11 +72,11 @@ func (m *Module) TranspileNode(node ASTNode) string {
 	case "expr":
 		res += m.TranspileNodes(node.Inner)
 	case "code_block":
-		res += fmt.Sprintf("{\n  %s}", strings.TrimSuffix(m.TranspileNodes(node.Inner), " "))
+		res += fmt.Sprintf("{\n  %s}", strings.TrimRight(m.TranspileNodes(node.Inner), " "))
 	case "var_def":
 		res += fmt.Sprintf("var %s %s", m.TranspileNode(node.Inner[1]), m.TranspileNode(node.Inner[0]))
 	case "round_def":
-		res += fmt.Sprintf("(%s)", strings.TrimSuffix(strings.ReplaceAll(m.TranspileNodes(node.Inner), "var ", ""), " "))
+		res += fmt.Sprintf("(%s)", strings.TrimRight(strings.ReplaceAll(m.TranspileNodes(node.Inner), "var ", ""), " "))
 	case "call_tree":
 		for i, c := range node.Inner {
 			res += m.TranspileNode(c)
@@ -89,7 +93,7 @@ func (m *Module) TranspileNode(node ASTNode) string {
 		res += fmt.Sprintf("type %s struct %s\n", m.TranspileNode(node.Inner[0]), m.TranspileNode(node.Inner[1]))
 
 	case "enum_curly":
-		res += fmt.Sprintf("{\n  %s}", strings.TrimSuffix(m.TranspileNodes(node.Inner), " "))
+		res += fmt.Sprintf("{\n  %s}", strings.TrimRight(m.TranspileNodes(node.Inner), " "))
 
 	case "namespace":
 		namespace_name := "n" + m.TranspileNode(node.Inner[0])
@@ -159,7 +163,7 @@ func (m *Module) TranspileNode(node ASTNode) string {
 	case "else_statement":
 		res += "else "
 		res += m.TranspileNodes(node.Inner)
-	
+
 	case "elseif_statement":
 		res += "else "
 		res += m.TranspileNodes(node.Inner)

@@ -27,3 +27,5 @@ go.work
 .antlr/
 
 test/
+
+build/

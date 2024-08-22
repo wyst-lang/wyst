@@ -46,7 +46,7 @@ func NewRoot(file_path string) Module {
 	root := Module{}
 
 	root.Path = file_path
-	root.Out = OUT_FOLDER+"main.go"
+	root.Out = OUT_FOLDER + "main.go"
 	root.Name = "root"
 	root.Code = root.Transpile(readFile(file_path))
 
@@ -77,6 +77,6 @@ func WriteModules(root Module) {
 
 func WriteRoot(root Module) {
 	writeFile(OUT_FOLDER+"main.go", "package main\n"+root.Code)
-	writeFile(OUT_FOLDER+"go.mod", "module "+strings.ReplaceAll(OUT_FOLDER, "/", "")+"\n")
+	writeFile(OUT_FOLDER+"go.mod", "module "+strings.ReplaceAll(OUT_FOLDER, "/", "")+"\n"+"go 1.22\ntoolchain go1.22.6")
 	WriteModules(root)
 }
