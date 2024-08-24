@@ -8,11 +8,10 @@
 <h3 align="center">Wyst is a programing language that is inspired by C and transpiles to Go</h3>
 
 ```c
-#include <stdio.h>
+include io;
 
-int main() {
+void main() {
   printf("Hello, World!");
-  return 0;
 }
 ```
 
